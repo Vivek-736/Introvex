@@ -147,7 +147,7 @@ export default function PricingPage() {
     <div className="flex min-h-screen flex-col">
       <Header variant="home" />
 
-      <main className="flex-1 pt-24">
+      <main className="flex-1">
         <section className="py-20 md:py-32">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center mb-14">

@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -65,8 +64,6 @@ export function Header({ variant = "home" }: HeaderProps) {
             {[
               { href: "/#features", label: "Features" },
               { href: "/#how-it-works", label: "How It Works" },
-              { href: "/workspace", label: "Workspace" },
-              { href: "/about", label: "About" },
               { href: "/pricing", label: "pricing" },
             ].map((item) => (
               <motion.div
