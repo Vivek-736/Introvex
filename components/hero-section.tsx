@@ -6,6 +6,7 @@ import { ArrowRight, ArrowDown } from "lucide-react";
 import { motion, useTransform, useScroll } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { useScrollPosition } from "@/hooks/use-scroll-position";
+import Link from "next/link";
 
 // Predefined dot properties to ensure consistency between server and client
 const dotProperties = [
@@ -49,12 +50,28 @@ export function HeroSection() {
   const imageScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
   const imageRotate = useTransform(scrollYProgress, [0, 0.5], [0, 5]);
   const parallaxY = useTransform(scrollYProgress, [0, 1], [0, 150]);
-  const dotOpacityTransform = useTransform(scrollYProgress, [0, 0.2, 0.4], [0, 0.3, 0]);
+  const dotOpacityTransform = useTransform(
+    scrollYProgress,
+    [0, 0.2, 0.4],
+    [0, 0.3, 0]
+  );
   const dotYTransform = useTransform(scrollYProgress, [0, 0.5], [0, 50]);
-  const gridOpacityTransform = useTransform(scrollYProgress, [0, 0.3], [0, 0.05]);
-  const buttonOpacityTransform = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
+  const gridOpacityTransform = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    [0, 0.05]
+  );
+  const buttonOpacityTransform = useTransform(
+    scrollYProgress,
+    [0, 0.4],
+    [1, 0]
+  );
   const buttonYTransform = useTransform(scrollYProgress, [0, 0.4], [0, 70]);
-  const paragraphOpacityTransform = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
+  const paragraphOpacityTransform = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    [1, 0]
+  );
   const paragraphYTransform = useTransform(scrollYProgress, [0, 0.3], [0, 50]);
   const arrowOpacityTransform = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
   const arrowYTransform = useTransform(scrollYProgress, [0, 0.1], [0, 50]);
@@ -63,12 +80,36 @@ export function HeroSection() {
     [0, 0.5],
     ["20px 20px 0px 0px rgba(0,0,0,1)", "10px 10px 0px 0px rgba(0,0,0,0.5)"]
   );
-  const dotWidthTransform = useTransform(scrollYProgress, [0, 0.3], ["100%", "80%"]);
-  const dot2WidthTransform = useTransform(scrollYProgress, [0, 0.3], ["75%", "60%"]);
-  const dot3WidthTransform = useTransform(scrollYProgress, [0, 0.3], ["83.333%", "70%"]);
-  const dot4WidthTransform = useTransform(scrollYProgress, [0, 0.3], ["66.667%", "50%"]);
-  const dot5WidthTransform = useTransform(scrollYProgress, [0, 0.3], ["100%", "85%"]);
-  const dot6WidthTransform = useTransform(scrollYProgress, [0, 0.3], ["80%", "65%"]);
+  const dotWidthTransform = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    ["100%", "80%"]
+  );
+  const dot2WidthTransform = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    ["75%", "60%"]
+  );
+  const dot3WidthTransform = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    ["83.333%", "70%"]
+  );
+  const dot4WidthTransform = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    ["66.667%", "50%"]
+  );
+  const dot5WidthTransform = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    ["100%", "85%"]
+  );
+  const dot6WidthTransform = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    ["80%", "65%"]
+  );
 
   useEffect(() => {
     if (sectionRef.current) {
@@ -96,7 +137,10 @@ export function HeroSection() {
   }, [scrollY, sectionHeight, viewportHeight]);
 
   return (
-    <section ref={sectionRef} className="relative min-h-[90vh] container mx-auto sm:max-w-7xl flex items-center">
+    <section
+      ref={sectionRef}
+      className="relative min-h-[90vh] container mx-auto sm:max-w-7xl flex items-center"
+    >
       <motion.div className="absolute inset-0 z-0" style={{ y: parallaxY }}>
         <motion.div
           className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-black/3"
@@ -166,15 +210,19 @@ export function HeroSection() {
               className="flex flex-col sm:flex-row items-start gap-4"
               style={{ opacity: buttonOpacityTransform, y: buttonYTransform }}
             >
-              <Button className="rounded-full bg-black text-white hover:bg-black/90 transition-all px-8 py-6 text-base">
-                Start Writing <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
-                variant="outline"
-                className="rounded-full md:flex hidden border-black text-black hover:bg-black hover:text-white transition-all px-8 py-6 text-base"
-              >
-                Learn More
-              </Button>
+              <Link href={"/workspace"}>
+                <Button className="rounded-full bg-black text-white hover:bg-black/90 transition-all px-8 py-6 text-base">
+                  Start Writing <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <Link href={"/workspace"}>
+                <Button
+                  variant="outline"
+                  className="rounded-full md:flex hidden border-black text-black hover:bg-black hover:text-white transition-all px-8 py-6 text-base"
+                >
+                  Learn More
+                </Button>
+              </Link>
             </motion.div>
           </motion.div>
 

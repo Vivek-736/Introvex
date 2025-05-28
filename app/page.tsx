@@ -10,6 +10,7 @@ import { HeroSection } from "@/components/hero-section";
 import { AnimatedSection } from "@/components/animated-section";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import Link from "next/link";
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,7 +22,10 @@ export default function Home() {
   const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <div ref={containerRef} className="flex min-h-screen flex-col overflow-x-hidden">
+    <div
+      ref={containerRef}
+      className="flex min-h-screen flex-col overflow-x-hidden"
+    >
       <Header variant="home" />
 
       {/* Global scroll progress indicator */}
@@ -160,9 +164,11 @@ export default function Home() {
                 transition={{ duration: 0.5, delay: 0.4 }}
                 viewport={{ once: true }}
               >
-                <Button className="rounded-full bg-white text-black hover:bg-white/90 transition-all px-10 py-7 text-lg">
-                  Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                <Link href={"/workspace"}>
+                  <Button className="rounded-full bg-white text-black hover:bg-white/90 transition-all px-10 py-7 text-lg">
+                    Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
               </motion.div>
             </div>
           </div>
