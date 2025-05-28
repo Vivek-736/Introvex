@@ -1,6 +1,5 @@
 import type React from "react";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Poppins } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 
@@ -30,16 +29,13 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-        <body className={`${poppins.variable} font-sans antialiased`}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
+      <html lang="en" className="scroll-smooth">
+        <body
+          className={`${poppins.variable} font-sans antialiased flex flex-col min-h-screen`}
+        >
+          <div id="__next" className="flex flex-col min-h-screen">
             {children}
-          </ThemeProvider>
+          </div>
         </body>
       </html>
     </ClerkProvider>
