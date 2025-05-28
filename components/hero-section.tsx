@@ -171,7 +171,7 @@ export function HeroSection() {
               </Button>
               <Button
                 variant="outline"
-                className="rounded-full md:block hidden border-black text-black hover:bg-black hover:text-white transition-all px-8 py-6 text-base"
+                className="rounded-full md:flex hidden border-black text-black hover:bg-black hover:text-white transition-all px-8 py-6 text-base"
               >
                 Learn More
               </Button>
