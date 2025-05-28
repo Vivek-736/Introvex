@@ -21,7 +21,7 @@ export default function Home() {
   const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <div ref={containerRef} className="flex min-h-screen flex-col">
+    <div ref={containerRef} className="flex min-h-screen flex-col overflow-x-hidden">
       <Header variant="home" />
 
       {/* Global scroll progress indicator */}

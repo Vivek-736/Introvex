@@ -52,7 +52,7 @@ export function Header({ variant = "home" }: HeaderProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="container mx-auto flex items-center justify-between max-w-7xl">
+      <div className="container mx-auto flex items-center justify-between sm:max-w-7xl">
         <div className="flex items-center gap-12">
           <Link
             href="/"
@@ -128,7 +128,7 @@ export function Header({ variant = "home" }: HeaderProps) {
               </Link>
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button className="rounded-full bg-gradient-to-r from-gray-800 to-gray-900 text-white hover:from-gray-900 hover:to-black transition-all duration-300 px-6 py-2 text-sm font-medium">
+              <Button className="rounded-full sm:block hidden bg-gradient-to-r from-gray-800 to-gray-900 text-white hover:from-gray-900 hover:to-black transition-all duration-300 px-6 py-2 text-sm font-medium">
                 Get Started
               </Button>
             </motion.div>

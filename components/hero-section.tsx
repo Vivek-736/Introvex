@@ -96,7 +96,7 @@ export function HeroSection() {
   }, [scrollY, sectionHeight, viewportHeight]);
 
   return (
-    <section ref={sectionRef} className="relative min-h-[90vh] flex items-center">
+    <section ref={sectionRef} className="relative min-h-[90vh] container mx-auto sm:max-w-7xl flex items-center">
       <motion.div className="absolute inset-0 z-0" style={{ y: parallaxY }}>
         <motion.div
           className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-black/3"
@@ -137,7 +137,7 @@ export function HeroSection() {
             style={{ opacity: textOpacity, y: textY }}
           >
             <motion.h1
-              className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight"
+              className="text-3xl md:text-7xl font-bold mb-6 leading-tight tracking-tight"
               style={{ transformOrigin: "left center" }}
             >
               Research{" "}
@@ -171,7 +171,7 @@ export function HeroSection() {
               </Button>
               <Button
                 variant="outline"
-                className="rounded-full border-black text-black hover:bg-black hover:text-white transition-all px-8 py-6 text-base"
+                className="rounded-full md:block hidden border-black text-black hover:bg-black hover:text-white transition-all px-8 py-6 text-base"
               >
                 Learn More
               </Button>
