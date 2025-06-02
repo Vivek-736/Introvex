@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useUser, UserButton } from "@clerk/nextjs";
+import Image from "next/image";
 
 interface HeaderProps {
   variant?: "home" | "workspace";
@@ -30,8 +31,15 @@ export function Header({ variant = "home" }: HeaderProps) {
         <div className="flex items-center gap-12">
           <Link
             href="/"
-            className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 ml-4"
+            className="text-3xl flex gap-2 font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 ml-4"
           >
+            <Image
+              src="/favicon.png"
+              alt="Difras Logo"
+              width={30}
+              height={25}
+              className="rounded-xl"
+            />
             Difras
           </Link>
           <nav className="hidden md:flex items-center gap-10 ml-8">

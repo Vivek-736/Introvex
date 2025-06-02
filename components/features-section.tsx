@@ -1,8 +1,6 @@
 "use client";
-
 import { FileText, Upload, BookOpen } from "lucide-react";
 
-// Define feature data
 const features = [
   {
     icon: FileText,
@@ -43,7 +41,6 @@ export function FeaturesSection() {
       className="py-20 md:py-32 bg-black text-white relative overflow-hidden"
       aria-labelledby="features-heading"
     >
-      {/* Background patterns */}
       <div className="absolute inset-0 opacity-5 pointer-events-none">
         <div
           className="w-full h-full"
@@ -65,7 +62,6 @@ export function FeaturesSection() {
             backgroundSize: "40px 40px",
           }}
         />
-        {/* Use predefined dot positions */}
         {dotPositions.map((style, i) => (
           <div
             key={i}
