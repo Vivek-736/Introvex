@@ -1,6 +1,6 @@
 import React from 'react'
 
-const WorkspacePage = () => {
+const WorkspaceLayout = () => {
     return (
         <div>
         
@@ -8,4 +8,4 @@ const WorkspacePage = () => {
     )
 }
 
-export default WorkspacePage
+export default WorkspaceLayout
