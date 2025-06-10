@@ -136,15 +136,15 @@ export function HeroSection() {
           className="flex flex-col items-center text-center w-full"
         >
           <div className="flex flex-wrap gap-3 justify-center">
-            <span className="text-black/90 dark:text-white/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif']">Effortless</span>
-            <span className="text-black/90 dark:text-white/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif'] italic mx-2">Research</span>
-            <span className="text-black/90 dark:text-white/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif']">with Difras.</span>
+            <span className="text-black/90 dark:text-white/90 text-2xl md:text-7xl font-normal font-['Instrument_Serif']">Effortless</span>
+            <span className="text-black/90 dark:text-white/90 text-2xl md:text-7xl font-normal font-['Instrument_Serif'] italic mx-2">Research</span>
+            <span className="text-black/90 dark:text-white/90 text-2xl md:text-7xl font-normal font-['Instrument_Serif']">with Difras</span>
           </div>
-          <div className="flex justify-center text-black/90 dark:text-white/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif'] mt-4">
+          <div className="flex justify-center text-black/90 dark:text-white/90 text-lg md:text-7xl font-normal font-['Instrument_Serif'] mt-4">
             Data to Draft
           </div>
           <motion.p
-            className="text-lg md:text-xl mb-10 text-black/70 dark:text-white/70 leading-relaxed max-w-3xl mt-6"
+            className="text-sm md:text-xl mb-10 text-black/70 dark:text-white/70 leading-relaxed max-w-3xl mt-6"
             style={{
               opacity: paragraphOpacityTransform,
               y: paragraphYTransform,

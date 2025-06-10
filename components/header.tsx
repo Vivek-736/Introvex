@@ -28,8 +28,8 @@ export function Header({ variant = "home" }: HeaderProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="container mx-auto flex items-center justify-between sm:max-w-7xl">
-        <div className="flex items-center gap-12">
+      <div className="md:container md:mx-auto flex items-center justify-between sm:max-w-7xl">
+        <div className="flex items-center md:gap-12">
           <Link
             href="/"
             className="text-3xl flex gap-2 font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 ml-4"
@@ -98,7 +98,7 @@ export function Header({ variant = "home" }: HeaderProps) {
               <Link href="/sign-in">
                 <Button
                   variant="outline"
-                  className="rounded-full border-gray-900 dark:border-gray-100 text-gray-900 dark:text-gray-100 hover:bg-gray-900 dark:hover:bg-gray-100 hover:text-white dark:hover:text-black transition-all duration-300 px-6 py-2 text-sm font-medium"
+                  className="rounded-full border-gray-900 dark:border-gray-100 text-gray-900 dark:text-gray-100 hover:bg-gray-900 dark:hover:bg-gray-100 hover:text-white dark:hover:text-black transition-all duration-300 px-6 py-2 sm:text-sm text-xs font-medium"
                 >
                   Sign In
                 </Button>

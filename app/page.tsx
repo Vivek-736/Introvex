@@ -5,7 +5,6 @@ import { ArrowRight } from "lucide-react";
 import { FeaturesSection } from "@/components/features-section";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { TestimonialsSection } from "@/components/testimonials-section";
 import { HeroSection } from "@/components/hero-section";
 import { AnimatedSection } from "@/components/animated-section";
 import Link from "next/link";
@@ -78,9 +77,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-        </AnimatedSection>
-        <AnimatedSection transitionType="fade" className="py-32">
-          <TestimonialsSection />
         </AnimatedSection>
       </main>
       <Footer />
