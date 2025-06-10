@@ -38,7 +38,7 @@ export function FeaturesSection() {
   return (
     <section
       id="features"
-      className="py-20 md:py-32 bg-black text-white relative overflow-hidden"
+      className="py-20 md:py-32 bg-black dark:bg-white text-white dark:text-black relative overflow-hidden"
       aria-labelledby="features-heading"
     >
       <div className="absolute inset-0 opacity-5 pointer-events-none">
@@ -65,7 +65,7 @@ export function FeaturesSection() {
         {dotPositions.map((style, i) => (
           <div
             key={i}
-            className="absolute rounded-full bg-white"
+            className="absolute rounded-full bg-white dark:bg-black"
             style={style}
           />
         ))}
@@ -75,12 +75,12 @@ export function FeaturesSection() {
         <div className="max-w-3xl mx-auto text-center mb-12 md:mb-20">
           <h2
             id="features-heading"
-            className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 tracking-tight text-white dark:text-black"
           >
             Powerful Features
           </h2>
-          <div className="h-1 w-16 bg-white mx-auto mb-6" />
-          <p className="text-base sm:text-lg text-white/70 leading-relaxed">
+          <div className="h-1 w-16 bg-white dark:bg-black mx-auto mb-6" />
+          <p className="text-base sm:text-lg text-white/70 dark:text-black/70 leading-relaxed">
             Our platform combines cutting-edge AI with intuitive design to
             streamline your documentation process.
           </p>
@@ -93,26 +93,26 @@ export function FeaturesSection() {
               className="group relative"
               style={{ transitionDelay: `${index * 100}ms` }}
             >
-              <div className="absolute inset-0 border border-white/20 rounded-lg -m-2 group-hover:m-0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+              <div className="absolute inset-0 border border-white/20 dark:border-black/20 rounded-lg -m-2 group-hover:m-0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
               <div className="mb-6 overflow-hidden relative">
-                <div className="aspect-square bg-white/5 flex items-center justify-center rounded-lg group-hover:bg-white/10 transition-all duration-500 relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
+                <div className="aspect-square bg-white/5 dark:bg-black/5 flex items-center justify-center rounded-lg group-hover:bg-white/10 dark:group-hover:bg-black/10 transition-all duration-500 relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 dark:from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
                   <feature.icon
-                    className="h-12 w-12 sm:h-16 sm:w-16 relative z-10 group-hover:scale-110 transition-transform duration-300"
+                    className="h-12 w-12 sm:h-16 sm:w-16 relative z-10 text-white dark:text-black group-hover:scale-110 transition-transform duration-300"
                     aria-hidden="true"
                   />
                 </div>
-                <div className="h-1 w-0 bg-white group-hover:w-full transition-all duration-500" />
+                <div className="h-1 w-0 bg-white dark:bg-black group-hover:w-full transition-all duration-500" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold mb-4 tracking-tight group-hover:translate-x-1 transition-transform duration-300">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 tracking-tight group-hover:translate-x-1 transition-transform duration-300 text-white dark:text-black">
                 {feature.title}
               </h3>
-              <p className="text-white/70 text-sm sm:text-base leading-relaxed">
+              <p className="text-white/70 dark:text-black/70 text-sm sm:text-base leading-relaxed">
                 {feature.description}
               </p>
               <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <button
-                  className="rounded-full border border-white text-white hover:bg-white hover:text-black transition-all duration-300 px-4 py-2 text-sm sm:text-base"
+                  className="rounded-full border border-white dark:border-black text-white dark:text-black hover:bg-white dark:hover:bg-black hover:text-black dark:hover:text-white transition-all duration-300 px-4 py-2 text-sm sm:text-base"
                   aria-label={`Learn more about ${feature.title}`}
                 >
                   Learn More
@@ -124,8 +124,8 @@ export function FeaturesSection() {
 
         <div className="mt-16 md:mt-24 text-center">
           <div className="inline-block relative">
-            <div className="absolute -left-4 -right-4 h-[1px] bg-white/30 top-1/2" />
-            <span className="relative bg-black px-4 text-sm sm:text-base">
+            <div className="absolute -left-4 -right-4 h-[1px] bg-white/30 dark:bg-black/30 top-1/2" />
+            <span className="relative bg-black dark:bg-white px-4 text-sm sm:text-base text-white dark:text-black">
               Trusted by researchers worldwide
             </span>
           </div>
@@ -133,7 +133,7 @@ export function FeaturesSection() {
             {["STANFORD", "MIT", "OXFORD", "BERKELEY"].map((institution) => (
               <div
                 key={institution}
-                className="flex items-center justify-center h-12 opacity-70 hover:opacity-100 transition-opacity duration-300"
+                className="flex items-center justify-center h-12 opacity-70 hover:opacity-100 transition-opacity duration-300 text-white dark:text-black"
               >
                 <div className="font-bold text-lg sm:text-xl tracking-widest">
                   {institution}

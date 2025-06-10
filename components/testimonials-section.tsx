@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import Image from "next/image";
 
-// Define testimonial data
 const testimonials = [
   {
     id: 1,
@@ -84,9 +83,9 @@ export function TestimonialsSection() {
         height: `${3 + Math.random() * 8}px`,
         top: `${Math.random() * 100}%`,
         left: `${Math.random() * 100}%`,
-        background: i % 5 === 0 ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.1)",
+        background: i % 5 === 0 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)",
         filter: i % 7 === 0 ? "blur(1px)" : "none",
-        boxShadow: i % 7 === 0 ? "0 0 8px rgba(0,0,0,0.2)" : "none",
+        boxShadow: i % 7 === 0 ? "0 0 8px rgba(255,255,255,0.2)" : "none",
       }))
     );
   }, []);
@@ -230,15 +229,15 @@ export function TestimonialsSection() {
     <section className="relative overflow-hidden">
       {/* Enhanced Background elements */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-white via-black/5 to-white"
+        className="absolute inset-0 bg-gradient-to-br from-white dark:from-black via-black/5 dark:via-white/5 to-white dark:to-black"
         variants={backgroundPatternVariants}
         animate="animate"
         style={{
           backgroundImage: `
-            radial-gradient(circle at 20% 30%, rgba(0, 0, 0, 0.05) 0%, transparent 12%),
-            radial-gradient(circle at 80% 70%, rgba(0, 0, 0, 0.05) 0%, transparent 12%),
-            radial-gradient(circle at 40% 60%, rgba(0, 0, 0, 0.03) 0%, transparent 8%),
-            radial-gradient(circle at 60% 20%, rgba(0, 0, 0, 0.03) 0%, transparent 8%)
+            radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05) 0%, transparent 12%),
+            radial-gradient(circle at 80% 70%, rgba(255,255,255,0.05) 0%, transparent 12%),
+            radial-gradient(circle at 40% 60%, rgba(255,255,255,0.03) 0%, transparent 8%),
+            radial-gradient(circle at 60% 20%, rgba(255,255,255,0.03) 0%, transparent 8%)
           `,
           backgroundSize: "120px 120px",
         }}
@@ -249,9 +248,9 @@ export function TestimonialsSection() {
         className="absolute inset-0 opacity-20"
         animate={{
           background: [
-            "linear-gradient(45deg, transparent 65%, rgba(0,0,0,0.05) 100%)",
-            "linear-gradient(45deg, rgba(0,0,0,0.05) 0%, transparent 35%)",
-            "linear-gradient(45deg, transparent 65%, rgba(0,0,0,0.05) 100%)",
+            "linear-gradient(45deg, transparent 65%, rgba(255,255,255,0.05) 100%)",
+            "linear-gradient(45deg, rgba(255,255,255,0.05) 0%, transparent 35%)",
+            "linear-gradient(45deg, transparent 65%, rgba(255,255,255,0.05) 100%)",
           ],
         }}
         transition={{
@@ -267,19 +266,15 @@ export function TestimonialsSection() {
         className="absolute inset-0 opacity-10"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
+            linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
           `,
           backgroundSize: "40px 40px",
         }}
         animate={{
           backgroundPosition: ["0px 0px", "40px 40px"],
         }}
-        transition={{
-          duration: 20,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "linear",
-        }}
+        transition={{ duration: 20 }}
       />
 
       {/* Animated circles with subtle pulse effect */}
@@ -287,7 +282,7 @@ export function TestimonialsSection() {
         {[...Array(3)].map((_, i) => (
           <motion.div
             key={`circle-${i}`}
-            className="absolute rounded-full border border-black/10"
+            className="absolute rounded-full border-black/10 dark:border-white/10"
             style={{
               width: `${200 + i * 100}px`,
               height: `${200 + i * 100}px`,
@@ -304,7 +299,7 @@ export function TestimonialsSection() {
             transition={{
               duration: 10 + i * 2,
               repeat: Number.POSITIVE_INFINITY,
-              repeatType: "loop",
+              repeatType: "loop" as const,
               ease: "easeInOut",
             }}
           />
@@ -336,7 +331,7 @@ export function TestimonialsSection() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <motion.h2
-              className="text-4xl md:text-5xl font-bold mb-6 tracking-tight"
+              className="text-4xl md:text-5xl font-bold mb-6 tracking-tight text-black dark:text-white"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -345,7 +340,7 @@ export function TestimonialsSection() {
               What Researchers Say
             </motion.h2>
             <motion.div
-              className="h-1 w-24 bg-black mx-auto"
+              className="h-1 w-24 bg-black dark:bg-white mx-auto"
               initial={{ width: 0 }}
               whileInView={{ width: 96 }}
               transition={{ duration: 0.8, delay: 0.3 }}
@@ -356,7 +351,7 @@ export function TestimonialsSection() {
           <div className="relative">
             {/* Large quote icon with 3D rotation animation */}
             <motion.div
-              className="absolute -top-10 -left-10 text-black/5"
+              className="absolute -top-10 -left-10 text-black/5 dark:text-white/5"
               style={{ transformStyle: "preserve-3d" }}
               initial={{
                 opacity: 0,
@@ -402,7 +397,7 @@ export function TestimonialsSection() {
                   className="absolute inset-0"
                 >
                   <motion.div
-                    className="bg-white p-10 border border-black relative h-full flex flex-col justify-between"
+                    className="bg-white dark:bg-black p-10 border border-black dark:border-white relative h-full flex flex-col justify-between"
                     style={{
                       transformStyle: "preserve-3d",
                       backfaceVisibility: "hidden",
@@ -418,7 +413,7 @@ export function TestimonialsSection() {
                   >
                     {/* Decorative elements with 3D hover effect */}
                     <motion.div
-                      className="absolute -top-5 -left-5 w-10 h-10 bg-black"
+                      className="absolute -top-5 -left-5 w-10 h-10 bg-black dark:bg-white"
                       style={{ transformStyle: "preserve-3d" }}
                       whileHover={{
                         scale: 1.2,
@@ -429,7 +424,7 @@ export function TestimonialsSection() {
                       transition={{ duration: 0.1 }}
                     />
                     <motion.div
-                      className="absolute -bottom-5 -right-5 w-10 h-10 border-2 border-black bg-white"
+                      className="absolute -bottom-5 -right-5 w-10 h-10 border-2 border-black dark:border-white bg-white dark:bg-black"
                       style={{ transformStyle: "preserve-3d" }}
                       whileHover={{
                         scale: 1.2,
@@ -447,7 +442,7 @@ export function TestimonialsSection() {
                       initial="initial"
                       animate="animate"
                     >
-                      <p className="text-xl md:text-2xl leading-relaxed italic">
+                      <p className="text-xl md:text-2xl leading-relaxed italic text-black dark:text-white">
                         "{testimonials[currentIndex].quote}"
                       </p>
                     </motion.div>
@@ -459,7 +454,7 @@ export function TestimonialsSection() {
                       initial="initial"
                       animate="animate"
                     >
-                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-black mr-4 relative">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-black dark:border-white mr-4 relative">
                         <motion.div
                           whileHover={{ scale: 1.1 }}
                           transition={{ duration: 0.3 }}
@@ -476,10 +471,10 @@ export function TestimonialsSection() {
                         </motion.div>
                       </div>
                       <div>
-                        <h4 className="font-bold text-lg">
+                        <h4 className="font-bold text-lg text-black dark:text-white">
                           {testimonials[currentIndex].name}
                         </h4>
-                        <p className="text-sm text-black/70">
+                        <p className="text-sm text-black/70 dark:text-white/70">
                           {testimonials[currentIndex].role}
                           <br />
                           {testimonials[currentIndex].institution}
@@ -504,8 +499,8 @@ export function TestimonialsSection() {
                     }}
                     className={`w-3 h-3 rounded-full transition-all duration-300 ${
                       index === currentIndex
-                        ? "bg-black scale-125"
-                        : "bg-black/30 hover:bg-black/50"
+                        ? "bg-black dark:bg-white scale-125"
+                        : "bg-black/30 dark:bg-white/30 hover:bg-black/50 dark:hover:bg-white/50"
                     }`}
                     aria-label={`Go to testimonial ${index + 1}`}
                   />
@@ -517,7 +512,7 @@ export function TestimonialsSection() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handlePrevious}
-                  className="w-10 h-10 rounded-full border border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors"
+                  className="w-10 h-10 rounded-full border border-black dark:border-white text-black dark:text-white hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black transition-colors"
                   aria-label="Previous testimonial"
                 >
                   <ChevronLeft size={20} />
@@ -526,7 +521,7 @@ export function TestimonialsSection() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleNext}
-                  className="w-10 h-10 rounded-full border border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors"
+                  className="w-10 h-10 rounded-full border border-black dark:border-white text-black dark:text-white hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black transition-colors"
                   aria-label="Next testimonial"
                 >
                   <ChevronRight size={20} />

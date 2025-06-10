@@ -98,7 +98,7 @@ export function HeroSection() {
     >
       <motion.div className="absolute inset-0 z-0" style={{ y: parallaxY }}>
         <motion.div
-          className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-black/3"
+          className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-black/3 dark:bg-white/3"
           style={{ opacity: dotOpacityTransform }}
         />
         <motion.div
@@ -113,7 +113,7 @@ export function HeroSection() {
           {dotProperties.map((props, i) => (
             <motion.div
               key={i}
-              className="absolute rounded-full bg-black/10"
+              className="absolute rounded-full bg-black/10 dark:bg-white/10"
               style={{
                 width: props.width,
                 height: props.height,
@@ -136,15 +136,15 @@ export function HeroSection() {
           className="flex flex-col items-center text-center w-full"
         >
           <div className="flex flex-wrap gap-3 justify-center">
-            <span className="text-black/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif']">Effortless</span>
-            <span className="text-black/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif'] italic mx-2">Research</span>
-            <span className="text-black/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif']">with Difras.</span>
+            <span className="text-black/90 dark:text-white/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif']">Effortless</span>
+            <span className="text-black/90 dark:text-white/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif'] italic mx-2">Research</span>
+            <span className="text-black/90 dark:text-white/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif']">with Difras.</span>
           </div>
-          <div className="flex justify-center text-black/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif'] mt-4">
+          <div className="flex justify-center text-black/90 dark:text-white/90 text-3xl md:text-7xl font-normal font-['Instrument_Serif'] mt-4">
             Data to Draft
           </div>
           <motion.p
-            className="text-lg md:text-xl mb-10 text-black/70 leading-relaxed max-w-3xl mt-6"
+            className="text-lg md:text-xl mb-10 text-black/70 dark:text-white/70 leading-relaxed max-w-3xl mt-6"
             style={{
               opacity: paragraphOpacityTransform,
               y: paragraphYTransform,
@@ -158,14 +158,14 @@ export function HeroSection() {
             style={{ opacity: buttonOpacityTransform, y: buttonYTransform }}
           >
             <Link href={"/workspace"}>
-              <Button className="rounded-full bg-black text-white hover:bg-black/90 transition-all px-8 py-6 text-base">
+              <Button className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 transition-all px-8 py-6 text-base">
                 Start Writing <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href={"/workspace"}>
               <Button
                 variant="outline"
-                className="rounded-full md:flex hidden border-black text-black hover:bg-black hover:text-white transition-all px-8 py-6 text-base"
+                className="rounded-full md:flex hidden border-black dark:border-white text-black dark:text-white hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black transition-all px-8 py-6 text-base"
               >
                 Learn More
               </Button>
@@ -175,7 +175,7 @@ export function HeroSection() {
       </div>
 
       <motion.div
-        className="fixed bottom-0 left-0 h-1 bg-black z-50"
+        className="fixed bottom-0 left-0 h-1 bg-black dark:bg-white z-50"
         style={{
           width: useTransform(scrollYProgress, [0, 1], ["0%", "100%"]),
           opacity: inView ? 1 : 0,

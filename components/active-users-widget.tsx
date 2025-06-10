@@ -145,32 +145,32 @@ export function ActiveUsersWidget() {
 
   return (
     <motion.div
-      className="bg-white rounded-xl border border-black/10 p-6"
+      className="bg-white dark:bg-black rounded-xl border border-black/10 dark:border-white/10 p-6"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
     >
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-black mb-1">
+          <h3 className="text-lg font-semibold text-black dark:text-white mb-1">
             Active Collaborators
           </h3>
-          <p className="text-sm text-black/60">
+          <p className="text-sm text-black/60 dark:text-white/60">
             Team members currently working
           </p>
         </div>
-        <div className="p-2 bg-black/5 rounded-lg">
-          <Users className="h-5 w-5 text-black/70" />
+        <div className="p-2 bg-black/5 dark:bg-white/5 rounded-lg">
+          <Users className="h-5 w-5 text-black/70 dark:text-white/70" />
         </div>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-40">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white"></div>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-black/50 px-2">
+          <div className="flex items-center justify-between text-xs text-black/50 dark:text-white/50 px-2">
             <span>User</span>
             <span>Status</span>
           </div>
@@ -180,7 +180,7 @@ export function ActiveUsersWidget() {
               {activeUsers.map((user, index) => (
                 <motion.div
                   key={user.id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-black/5 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
@@ -199,7 +199,7 @@ export function ActiveUsersWidget() {
                     <motion.div
                       className={`absolute -bottom-1 -right-1 w-5 h-5 ${getStatusColor(
                         user.status
-                      )} rounded-full flex items-center justify-center border-2 border-white`}
+                      )} rounded-full flex items-center justify-center border-2 border-white dark:border-black`}
                       animate={
                         user.status === "editing"
                           ? {
@@ -221,10 +221,10 @@ export function ActiveUsersWidget() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{user.name}</p>
+                    <p className="text-sm font-medium text-black dark:text-white truncate">{user.name}</p>
                     <div className="flex items-center gap-1">
-                      <FileText className="h-3 w-3 text-black/50" />
-                      <p className="text-xs text-black/60 truncate">
+                      <FileText className="h-3 w-3 text-black/50 dark:text-white/50" />
+                      <p className="text-xs text-black/60 dark:text-white/60 truncate">
                         {user.documentName}
                       </p>
                     </div>
@@ -234,15 +234,15 @@ export function ActiveUsersWidget() {
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         user.status === "editing"
-                          ? "bg-green-100 text-green-800"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
                           : user.status === "viewing"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
                       }`}
                     >
                       {getStatusText(user.status)}
                     </span>
-                    <span className="text-xs text-black/50 whitespace-nowrap">
+                    <span className="text-xs text-black/50 dark:text-white/50 whitespace-nowrap">
                       {user.lastActive}
                     </span>
                   </div>
@@ -253,23 +253,23 @@ export function ActiveUsersWidget() {
         </div>
       )}
 
-      <div className="mt-4 pt-4 border-t border-black/10 flex justify-between items-center">
-        <div className="text-xs text-black/50">
-          <span className="font-medium text-green-600">
+      <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 flex justify-between items-center">
+        <div className="text-xs text-black/50 dark:text-white/50">
+          <span className="font-medium text-green-600 dark:text-green-400">
             {activeUsers.filter((u) => u.status === "editing").length}
           </span>{" "}
           editing •{" "}
-          <span className="font-medium text-blue-600">
+          <span className="font-medium text-blue-600 dark:text-blue-400">
             {activeUsers.filter((u) => u.status === "viewing").length}
           </span>{" "}
           viewing •{" "}
-          <span className="font-medium text-gray-600">
+          <span className="font-medium text-gray-600 dark:text-gray-400">
             {activeUsers.filter((u) => u.status === "idle").length}
           </span>{" "}
           idle
         </div>
         <motion.button
-          className="text-sm text-black/70 hover:text-black transition-colors"
+          className="text-sm text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white transition-colors"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >

@@ -2,6 +2,7 @@ import type React from "react";
 import "./globals.css";
 import { Poppins } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -29,12 +30,19 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="en" className="scroll-smooth">
+      <html lang="en" className="scroll-smooth" suppressHydrationWarning>
         <body
           className={`${poppins.variable} font-sans antialiased flex flex-col min-h-screen`}
         >
           <div id="__next" className="flex flex-col min-h-screen">
-            {children}
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
           </div>
         </body>
       </html>
