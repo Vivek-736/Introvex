@@ -22,7 +22,7 @@ export function Header({ variant = "home" }: HeaderProps) {
     <header
       className={`${
         variant === "home"
-          ? "bg-gradient-to-r from-white/90 to-gray-50/90 dark:from-gray-900/90 dark:to-black/90"
+          ? "bg-gradient-to-r bg-background/50 backdrop-blur-md dark:from-gray-900/90 dark:to-background/50"
           : "bg-white/95 dark:bg-black/95 border-b border-gray-200 dark:border-gray-700"
       } backdrop-blur-lg sticky top-0 z-[100] py-4 px-6 shadow-sm`}
       onMouseEnter={() => setIsHovered(true)}
