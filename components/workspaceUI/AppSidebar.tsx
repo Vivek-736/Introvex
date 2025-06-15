@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Home, Search, BookOpen, FileText, Settings, Plus, MessageSquare, Archive, Star, User } from "lucide-react"
+import { UserButton } from "@clerk/nextjs"
 
 const menuItems = [
   { icon: Home, label: "Dashboard", href: "/workspace" },
@@ -32,8 +33,8 @@ export default function AppSidebar() {
     <Sidebar className="bg-black border-r border-gray-800">
       <SidebarHeader className="p-6 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-black font-bold text-sm">D</span>
+          <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
+            <img src="/favicon.png" alt="Logo" className="w-6 h-6" />
           </div>
           <span className="text-white font-semibold text-lg">Difras</span>
         </div>
@@ -87,14 +88,8 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-900 p-3 rounded-xl">
-              <User className="w-5 h-5 mr-3" />
-              Profile
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton className="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-900 p-3 rounded-xl">
-              <Settings className="w-5 h-5 mr-3" />
-              Settings
+              <UserButton />
+              <span className="ml-3">Profile</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
