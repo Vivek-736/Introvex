@@ -7,8 +7,10 @@ const WorkspaceLayout = ({ children }: { children: React.ReactNode }) => {
         <div>
             <SidebarProvider>
                 <AppSidebar />
-                <SidebarTrigger />
-                {children}
+                <div className='w-full'>
+                    <SidebarTrigger className='md:hidden' />
+                    {children}
+                </div>
             </SidebarProvider>
         </div>
     )
