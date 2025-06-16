@@ -24,17 +24,6 @@ const ChatHeader = () => {
 };
 
 const StyledWrapper = styled.div`
-  .light-button button.bt {
-    position: relative;
-    height: 200px;
-    display: flex;
-    align-items: flex-end;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-  }
-
   .light-button button.bt .button-holder {
     display: flex;
     align-items: center;
@@ -64,45 +53,6 @@ const StyledWrapper = styled.div`
 
   .light-button button.bt .glow-text i {
     font-style: italic;
-  }
-
-  .light-button button.bt .light-holder {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    height: 220px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .light-button button.bt .light-holder .dot {
-    position: absolute;
-    top: 0;
-    width: 10px;
-    height: 10px;
-    background-color: black;
-    border-radius: 50%;
-    z-index: 2;
-  }
-
-  .light-button button.bt .light-holder .light {
-    position: absolute;
-    top: 0;
-    width: 800px;
-    height: 300px;
-    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-    background: radial-gradient(
-      circle at 50% 0%,
-      rgba(88, 101, 242, 0.8) 0%,
-      rgba(88, 101, 242, 0.2) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    filter: blur(15px);
-    opacity: 1;
   }
 `;
 
