@@ -6,76 +6,51 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 0%;
-
     --card: 0 0% 100%;
     --card-foreground: 0 0% 0%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
-
     --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 0%;
-
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
-
     --accent: 0 0% 96%;
     --accent-foreground: 0 0% 0%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 0 0% 0%;
     --input: 0 0% 0%;
     --ring: 0 0% 0%;
-
     --radius: 0rem;
-
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
-
     --card: 0 0% 0%;
     --card-foreground: 0 0% 100%;
-
     --popover: 0 0% 0%;
     --popover-foreground: 0 0% 100%;
-
     --primary: 0 0% 100%;
     --primary-foreground: 0 0% 0%;
-
     --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 100%;
-
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
-
     --accent: 0 0% 15%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 0 0% 100%;
     --input: 0 0% 100%;
     --ring: 0 0% 100%;
@@ -93,16 +68,35 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
-  body {
+  html, body, #__next {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    min-height: 100vh;
     @apply bg-background text-foreground;
     font-family: var(--font-poppins);
+    overflow-x: hidden;
   }
 }
 
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* Ensure full viewport coverage for background */
+.lottie-background {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh !important;
+  width: 100vw !important;
+  z-index: -1;
 }
 
 /* Custom animations */
@@ -121,8 +115,7 @@ html {
 
 /* Floating animation for background elements */
 @keyframes float {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0) translateX(0);
   }
   25% {

@@ -28,7 +28,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: black;
     padding: 1.25rem 2.5rem;
     border-radius: 0.5rem;
     transition: 300ms ease;
