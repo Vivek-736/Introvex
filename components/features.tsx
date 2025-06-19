@@ -78,7 +78,7 @@ export default function Features() {
   return (
     <section
       id="features"
-      className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
+      className="py-20 relative overflow-hidden bg-[url('/pattern.png')] bg-cover bg-center"
     >
       {/* Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-r from-purple-900/10 to-violet-900/10"></div>

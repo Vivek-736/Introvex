@@ -44,7 +44,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(135deg, rgb(15, 23, 42) 0%, rgb(30, 41, 59) 100%);
+    background: black;
     min-height: 100vh;
   }
 }
@@ -55,14 +55,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgb(30, 41, 59);
+  background: rgb(26, 34, 49);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(139, 92, 246);
+  background: rgb(113, 96, 153);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(124, 58, 237);
+  background: rgb(113, 96, 153);
 }
