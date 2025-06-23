@@ -1,9 +1,39 @@
 "use client";
+
 import { Mic } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
+import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
+import { useRouter } from "next/navigation";
 
 const Chat = () => {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSend = async () => {
+    if (input.trim() === "") return;
+    setLoading(true);
+    const conversationId = uuidv4();
+
+    try {
+      const response = await axios.post("/api/gemini", { message: input });
+      const botResponse = response.data.response;
+
+      router.push(
+        `/workspace/${conversationId}?message=${encodeURIComponent(
+          input
+        )}&response=${encodeURIComponent(botResponse)}`
+      );
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setLoading(false);
+      setInput("");
+    }
+  };
+
   return (
     <StyledWrapper>
       <div className="container_chat_bot">
@@ -14,12 +44,20 @@ const Chat = () => {
                 id="chat_bot"
                 name="chat_bot"
                 placeholder="Imagine Something...✦˚"
-                defaultValue={""}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                disabled={loading}
               />
             </div>
             <div className="options">
               <div className="btns-add">
-                <button>
+                <button disabled={loading} title="Attach file">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width={20}
@@ -32,14 +70,14 @@ const Chat = () => {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M7 8v8a5 5 0 1 0 10 0V6.5a3.5 3.5 0 1 0-7 0V15a2 2 0 0 0 4 0V8"
+                      d="M7 8v8a5 5 0 1 0 10 0V8m-5-5v3h0"
                     />
                   </svg>
                 </button>
-                <button>
+                <button disabled={loading} title="Voice input">
                   <Mic className="w-5 h-5" />
                 </button>
-                <button>
+                <button disabled={loading} title="Settings">
                   <svg
                     viewBox="0 0 24 24"
                     height={20}
@@ -53,15 +91,24 @@ const Chat = () => {
                   </svg>
                 </button>
               </div>
-              <button className="btn-submit">
-                <i>
-                  <svg viewBox="0 0 512 512">
-                    <path
-                      fill="currentColor"
-                      d="M473 39.05a24 24 0 0 0-25.5-5.46L47.47 185h-.08a24 24 0 0 0 1 45.16l.41.13l137.3 58.63a16 16 0 0 0 15.54-3.59L422 80a7.07 7.07 0 0 1 10 10L226.66 310.26a16 16 0 0 0-3.59 15.54l58.65 137.38c.06.2.12.38.19.57c3.2 9.27 11.3 15.81 21.09 16.25h1a24.63 24.63 0 0 0 23-15.46L478.39 64.62A24 24 0 0 0 473 39.05"
-                    />
-                  </svg>
-                </i>
+              <button
+                className="btn-submit"
+                onClick={handleSend}
+                disabled={loading}
+                title="Send message"
+              >
+                {loading ? (
+                  <span className="loading-text">Loading...</span>
+                ) : (
+                  <i>
+                    <svg viewBox="0 0 512 512">
+                      <path
+                        fill="currentColor"
+                        d="M473 39.05a24 24 0 0 0-25.5-5.46L47.47 185h-.08a24 24 0 0 0 1 45.16l.41.13l137.3 58.63a16 16 0 0 0 15.54-3.59L422 80a7.07 7.07 0 0 1 10 10L226.66 310.26a16 16 0 0 0-3.59 15.54l58.65 137.38c.06.2.12.38.19.57c3.2 9.27 11.3 15.81 21.09 16.25h1a24.63 24.63 0 0 0 23-15.46L478.39 64.62A24 24 0 0 0 473 39.05"
+                      />
+                    </svg>
+                  </i>
+                )}
               </button>
             </div>
           </div>
@@ -81,11 +128,11 @@ const StyledWrapper = styled.div`
     flex-direction: column;
     max-width: 700px;
     width: 100%;
-    margin: 0 auto; /* Center the chat on the page */
+    margin: 0 auto;
     padding: 20px 0;
   }
 
-  .container_chat_bot .container-chat-options {
+  .container-chat-options {
     position: relative;
     display: flex;
     background: linear-gradient(
@@ -101,7 +148,7 @@ const StyledWrapper = styled.div`
     overflow: hidden;
   }
 
-  .container_chat_bot .container-chat-options .chat {
+  .chat {
     display: flex;
     flex-direction: column;
     background-color: rgba(0, 0, 0, 0.5);
@@ -110,14 +157,14 @@ const StyledWrapper = styled.div`
     overflow: hidden;
   }
 
-  .container_chat_bot .container-chat-options .chat .chat-bot {
+  .chat-bot {
     position: relative;
     display: flex;
   }
 
-  .container_chat_bot .chat .chat-bot textarea {
+  .chat-bot textarea {
     background-color: transparent;
-    border-radius: 18px;
+    border-radius: 18px 18px 0 0;
     border: none;
     width: 100%;
     height: 120px;
@@ -147,16 +194,22 @@ const StyledWrapper = styled.div`
     &:focus::placeholder {
       color: #363636;
     }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 
-  .container_chat_bot .chat .options {
+  .options {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 14px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 0 0 18px 18px;
   }
 
-  .container_chat_bot .chat .options .btns-add {
+  .btns-add {
     display: flex;
     gap: 10px;
 
@@ -172,10 +225,15 @@ const StyledWrapper = styled.div`
         transform: translateY(-3px);
         color: #ffffff;
       }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
     }
   }
 
-  .container_chat_bot .chat .options .btn-submit {
+  .btn-submit {
     display: flex;
     padding: 4px;
     background-image: linear-gradient(to top, #292929, #555555, #292929);
@@ -194,8 +252,13 @@ const StyledWrapper = styled.div`
       border-radius: 12px;
       backdrop-filter: blur(3px);
       color: #8b8b8b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     & svg {
+      width: 24px;
+      height: 24px;
       transition: all 0.3s ease;
     }
     &:hover svg {
@@ -210,15 +273,26 @@ const StyledWrapper = styled.div`
     &:active {
       transform: scale(0.92);
     }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .loading-text {
+      color: #f3f6fd;
+      font-size: 14px;
+      padding: 0 8px;
+    }
   }
 
-  .container_chat_bot .tags {
+  .tags {
     padding: 16px 0;
     display: flex;
     flex-wrap: wrap;
     color: #ffffff;
     font-size: 12px;
     gap: 8px;
+    justify-content: center;
 
     & span {
       padding: 6px 12px;
@@ -227,6 +301,11 @@ const StyledWrapper = styled.div`
       border-radius: 12px;
       cursor: pointer;
       user-select: none;
+      transition: all 0.3s ease;
+      &:hover {
+        background-color: #363636;
+        border-color: #f3f6fd;
+      }
     }
   }
 `;

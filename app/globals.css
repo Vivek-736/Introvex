@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import "prism-themes/themes/prism-atom-dark.css";
 
 :root {
   --foreground-rgb: 255, 255, 255;
