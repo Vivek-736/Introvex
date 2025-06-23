@@ -8,8 +8,8 @@ export default function Hero() {
   return (
     <section className="min-h-screen bg-[url('/pattern.png')] bg-cover bg-center flex items-center justify-center  pt-16 relative overflow-hidden">
       {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-violet-900/20"></div>
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-500/20 to-slate-500/20"></div>
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-slate-800/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
@@ -18,13 +18,13 @@ export default function Hero() {
           <div className="text-left">
             {/* Main Headline */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-              <span className="block font-['Instrument_Serif']">
+              <span className="block font-['Instrument_Serif'] font-medium">
                 Effortless
               </span>
-              <span className="block bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent font-['Instrument_Serif'] italic my-2">
+              <span className="block bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent font-['Instrument_Serif'] font-medium italic my-2">
                 Research
               </span>
-              <span className="block font-['Instrument_Serif']">
+              <span className="block font-medium font-['Instrument_Serif']">
                 with Difras
               </span>
             </h1>
