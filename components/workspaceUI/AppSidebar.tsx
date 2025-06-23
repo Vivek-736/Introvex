@@ -16,15 +16,11 @@ import { UserButton } from "@clerk/nextjs"
 
 const menuItems = [
   { icon: Home, label: "Dashboard", href: "/workspace" },
-  { icon: Search, label: "Research", href: "/workspace/research" },
   { icon: BookOpen, label: "Library", href: "/workspace/library" },
   { icon: FileText, label: "Documents", href: "/workspace/documents" },
   { icon: MessageSquare, label: "Chat History", href: "/workspace/chat" },
-  { icon: Star, label: "Favorites", href: "/workspace/favorites" },
   { icon: Archive, label: "Archive", href: "/workspace/archive" },
 ]
-
-const recentChats = ["AI Ethics Research", "Climate Change Analysis", "Market Research Q3", "Literature Review Draft"]
 
 export default function AppSidebar() {
   const [activeItem, setActiveItem] = useState("Dashboard")
@@ -72,14 +68,11 @@ export default function AppSidebar() {
         <div className="mt-8">
           <h3 className="text-gray-400 text-sm font-medium mb-3 px-3">Recent Chats</h3>
           <div className="space-y-1">
-            {recentChats.map((chat, index) => (
-              <button
-                key={index}
-                className="w-full text-left p-3 text-gray-400 hover:text-white hover:bg-gray-900 rounded-xl transition-all duration-200 text-sm truncate"
-              >
-                {chat}
-              </button>
-            ))}
+            <div className="p-3 bg-gray-900 rounded-xl text-gray-400 transition-colors duration-200 cursor-pointer">
+              <div className="flex items-center justify-center">
+                <span>No recent chats</span>
+              </div>
+            </div>
           </div>
         </div>
       </SidebarContent>

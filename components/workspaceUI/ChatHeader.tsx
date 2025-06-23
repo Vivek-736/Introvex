@@ -14,7 +14,7 @@ const ChatHeader = () => {
           </div>
           <div className="button-holder">
             <span className="glow-text">
-              Effortless <i>Research</i> with Difras.
+              Introvex
             </span>
           </div>
         </button>
