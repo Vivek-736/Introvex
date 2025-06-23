@@ -6,6 +6,7 @@ import Prism from "prismjs";
 import { Mic } from "lucide-react";
 import axios from "axios";
 import CustomLoading from "@/components/CustomLoading";
+import { toast } from "sonner";
 
 const WorkspaceIdPage = () => {
   const searchParams = useSearchParams();
@@ -129,10 +130,8 @@ const WorkspaceIdPage = () => {
   };
 
   const handleCopy = (code: string) => {
-    navigator.clipboard
-      .writeText(code)
-      .then(() => alert("Code copied to clipboard!"))
-      .catch((err) => console.error("Failed to copy code:", err));
+    navigator.clipboard.writeText(code);
+    toast.success("Code copied to clipboard!");
   };
 
   if (!searchParams.get("message") || !searchParams.get("response")) {
@@ -145,7 +144,7 @@ const WorkspaceIdPage = () => {
 
   return (
     <div className="min-h-screen w-full bg-black text-white flex flex-col items-center justify-center p-4 sm:p-10">
-      <div className="w-full max-w-4xl flex flex-col h-[90vh] rounded-lg shadow-lg">
+      <div className="w-full max-w-4xl flex flex-col h-[88vh] rounded-lg shadow-lg">
         <div
           className="flex-1 overflow-y-auto px-4 pb-4 space-y-4"
           ref={chatContainerRef}
@@ -192,7 +191,7 @@ const WorkspaceIdPage = () => {
           {sending && <CustomLoading />}
         </div>
 
-        <div className="p-4 rounded-b-lg">
+        <div className="p-4 rounded-lg border-t border-gray-700 bg-gray-900">
           <div className="flex items-center bg-gray-800 rounded-lg p-2 shadow-inner">
             <textarea
               placeholder="Type your message..."

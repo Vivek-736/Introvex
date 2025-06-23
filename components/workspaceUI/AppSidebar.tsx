@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import {
   Sidebar,
   SidebarContent,
@@ -10,13 +9,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Home, Search, BookOpen, FileText, Settings, Plus, MessageSquare, Archive, Star, User } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
 const menuItems = [
   { icon: Home, label: "Dashboard", href: "/workspace" },
-  { icon: BookOpen, label: "Library", href: "/workspace/library" },
   { icon: FileText, label: "Documents", href: "/workspace/documents" },
   { icon: MessageSquare, label: "Chat History", href: "/workspace/chat" },
   { icon: Archive, label: "Archive", href: "/workspace/archive" },
@@ -26,7 +26,7 @@ export default function AppSidebar() {
   const [activeItem, setActiveItem] = useState("Dashboard")
 
   return (
-    <Sidebar className="bg-black border-r border-gray-800">
+    <Sidebar className="bg-slate-950 border-r border-gray-800">
       <SidebarHeader className="p-6 border-b border-gray-800">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
