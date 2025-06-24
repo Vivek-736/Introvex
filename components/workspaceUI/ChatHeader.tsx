@@ -41,7 +41,7 @@ const StyledWrapper = styled.div`
     font-family: "Instrument Serif", serif;
     font-weight: 400;
     white-space: nowrap;
-    color: rgba(120, 140, 255, 1);
+    color: white;
     text-shadow:
       0 0 10px rgba(88, 101, 242, 0.8),
       0 0 20px rgba(88, 101, 242, 0.6),
