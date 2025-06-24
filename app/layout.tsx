@@ -4,6 +4,7 @@ import { Poppins } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import Provider from "./Provider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -36,15 +37,17 @@ export default function RootLayout({
           className={`${poppins.variable} font-sans antialiased flex flex-col min-h-screen`}
         >
           <div id="__next" className="flex flex-col min-h-screen">
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <Toaster />
-              {children}
-            </ThemeProvider>
+            <Provider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="dark"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <Toaster />
+                {children}
+              </ThemeProvider>
+            </Provider>
           </div>
         </body>
       </html>
