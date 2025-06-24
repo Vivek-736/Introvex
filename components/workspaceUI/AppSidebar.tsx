@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Sidebar,
@@ -8,22 +8,21 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Home, Search, BookOpen, FileText, Settings, Plus, MessageSquare, Archive, Star, User } from "lucide-react"
-import { UserButton } from "@clerk/nextjs"
+} from "@/components/ui/sidebar";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Home, FileText, Plus, MessageSquare } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", href: "/workspace" },
   { icon: FileText, label: "Documents", href: "/workspace/documents" },
   { icon: MessageSquare, label: "Chat History", href: "/workspace/chat" },
-  { icon: Archive, label: "Archive", href: "/workspace/archive" },
-]
+];
 
 export default function AppSidebar() {
-  const [activeItem, setActiveItem] = useState("Dashboard")
+  const [activeItem, setActiveItem] = useState("Dashboard");
 
   return (
     <Sidebar className="bg-slate-950 border-r border-gray-800">
@@ -37,7 +36,6 @@ export default function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="p-4">
-        {/* New Chat Button */}
         <div className="mb-6">
           <Button className="w-full bg-white text-black hover:bg-gray-200 rounded-xl font-medium">
             <Plus className="w-4 h-4 mr-2" />
@@ -45,28 +43,30 @@ export default function AppSidebar() {
           </Button>
         </div>
 
-        {/* Main Navigation */}
         <SidebarMenu className="space-y-2">
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.label}>
-              <SidebarMenuButton
-                onClick={() => setActiveItem(item.label)}
-                className={`w-full justify-start text-left p-3 rounded-xl transition-all duration-200 ${
-                  activeItem === item.label
-                    ? "bg-gray-800 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-gray-900"
-                }`}
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.label}
-              </SidebarMenuButton>
+              <Link href={item.href}>
+                <SidebarMenuButton
+                  onClick={() => setActiveItem(item.label)}
+                  className={`w-full justify-start text-left p-3 rounded-xl transition-all duration-200 ${
+                    activeItem === item.label
+                      ? "bg-gray-800 text-white"
+                      : "text-gray-400 hover:text-white hover:bg-gray-900"
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.label}
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
 
-        {/* Recent Chats */}
         <div className="mt-8">
-          <h3 className="text-gray-400 text-sm font-medium mb-3 px-3">Recent Chats</h3>
+          <h3 className="text-gray-400 text-sm font-medium mb-3 px-3">
+            Recent Chats
+          </h3>
           <div className="space-y-1">
             <div className="p-3 bg-gray-900 rounded-xl text-gray-400 transition-colors duration-200 cursor-pointer">
               <div className="flex items-center justify-center">
@@ -88,5 +88,5 @@ export default function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
