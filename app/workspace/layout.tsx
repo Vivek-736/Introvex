@@ -8,7 +8,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
       <SidebarProvider>
         <AppSidebar />
         <div className="w-full min-h-screen">
-          <div className="md:hidden p-4 border-b border-gray-800">
+          <div className="md:hidden p-4 border-b border-gray-800 bg-black">
             <SidebarTrigger className="text-white hover:bg-gray-800" />
           </div>
           {children}

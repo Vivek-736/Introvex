@@ -26,7 +26,7 @@ export default function AppSidebar() {
 
   return (
     <Sidebar className="md:bg-gradient-to-b z-[400] from-slate-900 to-slate-950 border-r border-gray-700 w-64">
-      <SidebarHeader className="p-6 border-b border-gray-700">
+      <SidebarHeader className="p-6 border-b border-gray-700 bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center shadow-sm">
             <img src="/favicon.png" alt="Logo" className="w-7 h-7" />
@@ -37,7 +37,7 @@ export default function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-6">
+      <SidebarContent className="p-6 bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="mb-8">
           <Button className="w-full bg-white text-black hover:bg-gray-100 rounded-lg font-semibold text-base py-3 transition-all duration-200">
             <Plus className="w-5 h-5 mr-3" />
@@ -79,7 +79,7 @@ export default function AppSidebar() {
         </div>
       </SidebarContent>
 
-      <SidebarFooter className="p-6 border-t border-gray-700">
+      <SidebarFooter className="p-6 border-t border-gray-700 bg-gradient-to-b from-slate-900 to-slate-950">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800/50 py-5 px-4 rounded-lg text-base font-medium transition-all duration-200">
