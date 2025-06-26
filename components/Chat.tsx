@@ -3,31 +3,56 @@
 import { Mic } from "lucide-react";
 import React, { useState } from "react";
 import styled from "styled-components";
-import axios from "axios";
+import { supabase } from "@/services/SupabaseClient";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user } = useUser();
 
   const handleSend = async () => {
     if (input.trim() === "") return;
     setLoading(true);
-    const conversationId = uuidv4();
+    const chatId = uuidv4();
+    const userEmail = user?.emailAddresses[0]?.emailAddress;
 
     try {
-      const response = await axios.post("/api/gemini", { message: input });
-      const botResponse = response.data.response;
+      const geminiResponse = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input }),
+      });
+      const { response: botResponse } = await geminiResponse.json();
 
-      router.push(
-        `/workspace/${conversationId}?message=${encodeURIComponent(
-          input
-        )}&response=${encodeURIComponent(botResponse)}`
-      );
+      const messageString = [
+        input,
+        botResponse || "Hello there, pal! How can I help you today?",
+      ].join(",,,,");
+      const { data, error } = await supabase
+        .from("Data")
+        .insert({
+          created_at: new Date().toISOString(),
+          userEmail,
+          title: input,
+          message: messageString,
+          chatId: chatId,
+        })
+        .select();
+
+      if (error) throw error;
+
+      console.log("Inserted chat data:", data);
+      router.push(`/workspace/chat/${chatId}`);
     } catch (error) {
-      console.error("Error sending message:", error);
+      if (error instanceof Error) {
+        console.error("Error sending message:", error.message);
+      } else {
+        console.error("Error sending message:", error);
+      }
     } finally {
       setLoading(false);
       setInput("");

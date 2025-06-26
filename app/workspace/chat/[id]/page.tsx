@@ -1,15 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Prism from "prismjs";
 import { Mic } from "lucide-react";
-import axios from "axios";
+import { supabase } from "@/services/SupabaseClient";
 import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
 
-const WorkspaceIdPage = () => {
+const ChatIdPage = () => {
+  const params = useParams();
   const searchParams = useSearchParams();
+  const chatIdFromParams = params.id;
+  const chatIdFromQuery = searchParams.get("chatId");
+  const chatId = chatIdFromParams || chatIdFromQuery;
 
   type Message = { sender: string; text: string; language?: string };
   const [messages, setMessages] = useState<Message[]>([]);
@@ -19,42 +23,82 @@ const WorkspaceIdPage = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const message = searchParams.get("message");
-    const response = searchParams.get("response");
-
-    if (!message || !response) {
-      setIsLoading(false);
-      return;
-    }
-
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    let lastIndex = 0;
-    const processedMessages = [{ sender: "user", text: message }];
-    let match;
-
-    while ((match = codeBlockRegex.exec(response))) {
-      const [fullMatch, language, code] = match;
-      const beforeText = response.slice(lastIndex, match.index).trim();
-      if (beforeText) {
-        processedMessages.push({ sender: "bot", text: cleanText(beforeText) });
+    const fetchChatData = async () => {
+      if (!chatId) {
+        console.warn("No chatId found in params or query");
+        setIsLoading(false);
+        return;
       }
-      processedMessages.push({
-        sender: "bot",
-        text: code.trim(),
-        // @ts-ignore
-        language: language || "plaintext",
-      });
-      lastIndex = match.index + fullMatch.length;
-    }
 
-    const remainingText = response.slice(lastIndex).trim();
-    if (remainingText) {
-      processedMessages.push({ sender: "bot", text: cleanText(remainingText) });
-    }
+      console.log("Fetching chat with chatId:", chatId);
+      try {
+        const { data, error } = await supabase
+          .from("Data")
+          .select("message")
+          .eq("chatId", chatId)
+          .maybeSingle();
 
-    setMessages(processedMessages);
-    setIsLoading(false);
-  }, [searchParams]);
+        if (error) {
+          console.error("Error fetching chat:", error.message);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data && data.message) {
+          const messageString = data.message;
+          const allMessages = messageString.split(",,,,");
+          const processedMessages: Message[] = [];
+
+          for (let i = 0; i < allMessages.length; i += 2) {
+            const userText = allMessages[i]?.trim() || "";
+            const botText = allMessages[i + 1]?.trim() || "";
+
+            if (userText) {
+              processedMessages.push({ sender: "user", text: userText });
+            }
+            if (botText) {
+              const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+              let lastIndex = 0;
+              let match;
+
+              while ((match = codeBlockRegex.exec(botText))) {
+                const [fullMatch, language, code] = match;
+                const beforeText = botText.slice(lastIndex, match.index).trim();
+                if (beforeText) {
+                  processedMessages.push({
+                    sender: "bot",
+                    text: cleanText(beforeText),
+                  });
+                }
+                processedMessages.push({
+                  sender: "bot",
+                  text: code.trim(),
+                  language: language || "plaintext",
+                });
+                lastIndex = match.index + fullMatch.length;
+              }
+
+              const remainingText = botText.slice(lastIndex).trim();
+              if (remainingText) {
+                processedMessages.push({
+                  sender: "bot",
+                  text: cleanText(remainingText),
+                });
+              }
+            }
+          }
+
+          setMessages(processedMessages);
+        }
+      } catch (error) {
+        console.error("Error in useEffect:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChatData();
+  }, [chatId]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -72,11 +116,53 @@ const WorkspaceIdPage = () => {
     setSending(true);
     const newUserMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, newUserMessage]);
-    setInput("");
 
     try {
-      const response = await axios.post("/api/gemini", { message: input });
-      const botResponse = response.data.response;
+      console.log("Sending message with chatId:", chatId);
+      const { data: currentData, error: fetchError } = await supabase
+        .from("Data")
+        .select("message")
+        .eq("chatId", chatId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Fetch error:", fetchError.message);
+        throw new Error(fetchError.message);
+      }
+
+      const currentMessage = currentData?.message || "";
+      const geminiResponse = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input }),
+      });
+      const { response: botResponse } = await geminiResponse.json();
+
+      const updatedMessage = [
+        ...(currentMessage ? currentMessage.split(",,,,") : []),
+        input,
+        botResponse,
+      ].join(",,,,");
+
+      const { data, error } = await supabase
+        .from("Data")
+        .update({
+          message: updatedMessage,
+          created_at: new Date().toISOString(),
+        })
+        .eq("chatId", chatId)
+        .select();
+
+      if (error) {
+        console.error("Update error:", error.message);
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        console.log("Updated chat data:", data);
+      } else {
+        console.warn("No rows updated, possible chatId mismatch:", chatId);
+      }
 
       const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
       let lastIndex = 0;
@@ -115,13 +201,18 @@ const WorkspaceIdPage = () => {
       setMessages((prev) => [...prev, ...processedMessages]);
       setTimeout(() => Prism.highlightAll(), 0);
     } catch (error) {
-      console.error("Error sending message:", error);
+      if (error instanceof Error) {
+        console.error("Error sending message:", error.message);
+      } else {
+        console.error("Error sending message:", JSON.stringify(error));
+      }
       setMessages((prev) => [
         ...prev,
         { sender: "bot", text: "Error: Unable to get response" },
       ]);
     } finally {
       setSending(false);
+      setInput("");
     }
   };
 
@@ -133,14 +224,6 @@ const WorkspaceIdPage = () => {
     navigator.clipboard.writeText(code);
     toast.success("Code copied to clipboard!");
   };
-
-  if (!searchParams.get("message") || !searchParams.get("response")) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        Conversation not found
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen w-full bg-black text-white flex flex-col items-center justify-center p-4 sm:p-10">
@@ -192,9 +275,9 @@ const WorkspaceIdPage = () => {
         </div>
 
         <div className="p-4 rounded-lg border-t border-gray-700 bg-gray-900">
-          <div className="flex items-center bg-gray-800 rounded-lg p-2 shadow-inner">
+          <div className="flex items-center bg-gray-800 rounded-xl p-3 shadow-inner">
             <textarea
-              placeholder="Type your message..."
+              placeholder="Type your message... ✦"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -204,29 +287,26 @@ const WorkspaceIdPage = () => {
                 }
               }}
               disabled={sending}
-              className="flex-1 mt-2 bg-transparent border-none text-white text-sm p-2 resize-none h-12 focus:outline-none placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+              className="flex-1 p-3 bg-transparent border-none text-white text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
             />
-            <div className="flex items-center gap-2 ml-2">
+            <div className="flex items-center gap-3 ml-3">
               <button
                 disabled={sending}
                 title="Voice input"
-                className="text-gray-400 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-full hover:bg-gray-700"
               >
-                <Mic className="w-5 h-5" />
+                <Mic className="w-6 h-6" />
               </button>
               <button
                 onClick={handleSend}
                 disabled={sending}
                 title="Send message"
-                className="bg-gray-700 p-2 rounded-lg hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-green-600 p-3 rounded-full hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {sending ? (
                   <span className="text-xs text-white">Sending...</span>
                 ) : (
-                  <svg
-                    viewBox="0 0 512 512"
-                    className="w-5 h-5 text-gray-400 hover:text-white"
-                  >
+                  <svg viewBox="0 0 512 512" className="w-6 h-6 text-white">
                     <path
                       fill="currentColor"
                       d="M473 39.05a24 24 0 0 0-25.5-5.46L47.47 185h-.08a24 24 0 0 0 1 45.16l.41.13l137.3 58.63a16 16 0 0 0 15.54-3.59L422 80a7.07 7.07 0 0 1 10 10L226.66 310.26a16 16 0 0 0-3.59 15.54l58.65 137.38c.06.2.12.38.19.57c3.2 9.27 11.3 15.81 21.09 16.25h1a24.63 24.63 0 0 0 23-15.46L478.39 64.62A24 24 0 0 0 473 39.05"
@@ -242,4 +322,4 @@ const WorkspaceIdPage = () => {
   );
 };
 
-export default WorkspaceIdPage;
+export default ChatIdPage;

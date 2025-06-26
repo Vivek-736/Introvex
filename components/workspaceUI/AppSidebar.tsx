@@ -6,14 +6,15 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Home, FileText, Plus, MessageSquare } from "lucide-react";
+import { Home, FileText, Plus, MessageSquare, RefreshCw } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { supabase } from "@/services/SupabaseClient";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", href: "/workspace" },
@@ -23,6 +24,77 @@ const menuItems = [
 
 export default function AppSidebar() {
   const [activeItem, setActiveItem] = useState("Dashboard");
+  type Chat = { id: number; title: string; chatId: string };
+  const [chats, setChats] = useState<Chat[]>([]);
+
+  useEffect(() => {
+    const fetchChats = async () => {
+      const { data, error } = await supabase
+        .from("Data")
+        .select("id, title, chatId, created_at")
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching chats:", error.message);
+      } else {
+        console.log("Fetched chats:", data);
+        setChats(data || []);
+      }
+    };
+    fetchChats();
+
+    const subscription = supabase
+      .channel("chat-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "Data",
+          filter: "chatId=neq.",
+        },
+        (payload) => {
+          console.log("Real-time payload:", payload);
+          const newChat = payload.new as Chat;
+          if (newChat.id && newChat.title && newChat.chatId) {
+            console.log("New chat inserted:", newChat);
+            setChats((prevChats) => {
+              const updatedChats = [...prevChats, newChat];
+              console.log("Updated chats state:", updatedChats);
+              return updatedChats;
+            });
+          } else {
+            console.warn("Invalid chat data received:", newChat);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("Subscription status:", status);
+        if (status === "SUBSCRIBED") {
+          console.log("Successfully subscribed to real-time updates");
+        } else if (status === "CHANNEL_ERROR") {
+          console.error(
+            "Subscription failed to connect. Check Supabase real-time settings."
+          );
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
+
+  const handleRefresh = async () => {
+    const { data, error } = await supabase
+      .from("Data")
+      .select("id, title, chatId");
+    if (error) {
+      console.error("Error refreshing chats:", error.message);
+    } else {
+      console.log("Refreshed chats:", data);
+      setChats(data || []);
+    }
+  };
 
   return (
     <Sidebar className="md:bg-gradient-to-b z-[400] from-slate-900 to-slate-950 border-r border-gray-700 w-64">
@@ -31,18 +103,20 @@ export default function AppSidebar() {
           <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center shadow-sm">
             <img src="/favicon.png" alt="Logo" className="w-7 h-7" />
           </div>
-          <span className="text-white font-bold text-sm md:text-base tracking-tight">
-            Introvex By{" "}<span className="italic">Difras</span>
+          <span className="text-white font-bold text-lg tracking-tight">
+            Introvex
           </span>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="p-6 bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="mb-8">
-          <Button className="w-full bg-white text-black hover:bg-gray-100 rounded-lg font-semibold text-base py-3 transition-all duration-200">
-            <Plus className="w-5 h-5 mr-3" />
-            New Research
-          </Button>
+          <Link href="/workspace">
+            <Button className="w-full bg-white text-black hover:bg-gray-100 rounded-lg font-semibold text-base py-3 transition-all duration-200">
+              <Plus className="w-5 h-5 mr-3" />
+              New Research
+            </Button>
+          </Link>
         </div>
 
         <SidebarMenu className="space-y-3">
@@ -66,15 +140,38 @@ export default function AppSidebar() {
         </SidebarMenu>
 
         <div className="mt-10">
-          <h3 className="text-gray-300 text-sm font-semibold mb-4 px-4 tracking-wide">
-            Recent Chats
-          </h3>
-          <div className="space-y-2">
-            <div className="p-4 bg-gray-800/50 rounded-lg text-gray-300 text-sm font-medium transition-colors duration-200 cursor-pointer hover:bg-gray-800">
-              <div className="flex items-center justify-center">
-                <span>No recent chats</span>
+          <div className="flex items-center justify-between px-4">
+            <h3 className="text-gray-300 text-sm font-semibold tracking-wide">
+              Recent Chats
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              className="text-gray-300 hover:text-white"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </Button>
+          </div>
+          <div className="space-y-2 mt-2">
+            {chats.length > 0 ? (
+              chats.map((chat) => (
+                <Link href={`/workspace/chat/${chat.chatId}`} key={chat.id}>
+                  <div className="p-4 bg-gray-800/50 rounded-lg text-gray-300 text-sm font-medium transition-colors duration-200 mt-2 cursor-pointer hover:bg-gray-800 flex items-center gap-3">
+                    <MessageSquare className="w-6 h-6 flex-shrink-0" />
+                    <span className="line-clamp-1 text-sm flex-1">
+                      {chat.title}
+                    </span>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="p-4 bg-gray-800/50 rounded-lg text-gray-300 text-sm font-medium transition-colors duration-200 cursor-pointer hover:bg-gray-800">
+                <div className="flex items-center justify-center">
+                  <span>No recent chats</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </SidebarContent>
