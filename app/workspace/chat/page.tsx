@@ -30,41 +30,6 @@ export default function ChatPage() {
     };
 
     fetchChats();
-
-    const channelName = `chat-changes-${userEmail?.replace(/[^a-zA-Z0-9]/g, "") || "default"}`;
-    const subscription = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "Data",
-          filter: `userEmail=eq.${userEmail}`,
-        },
-        (payload) => {
-          console.log("Real-time payload:", payload);
-          const newChat = payload.new as Chat;
-          if (newChat.id && newChat.title && newChat.chatId && newChat.userEmail === userEmail) {
-            console.log("New chat inserted:", newChat);
-            setChats((prevChats) => [...prevChats, newChat]);
-          } else {
-            console.warn("Invalid or unauthorized chat data received:", newChat);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log("Subscription status:", status);
-        if (status === "CHANNEL_ERROR") {
-          console.error(
-            "Subscription failed to connect. Check Supabase real-time settings."
-          );
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(subscription);
-    };
   }, [userEmail]);
 
   const handleCardClick = (chatId: string) => {
@@ -72,7 +37,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8">
       <h1 className="text-3xl font-bold mb-6 text-center">Chat History</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {chats.length > 0 ? (
