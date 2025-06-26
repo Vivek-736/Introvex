@@ -3,17 +3,23 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/services/SupabaseClient";
+import { useUser } from "@clerk/nextjs";
 
 export default function ChatPage() {
   const router = useRouter();
-  type Chat = { id: number; title: string; chatId: string };
+  type Chat = { id: number; title: string; chatId: string; userEmail: string };
   const [chats, setChats] = useState<Chat[]>([]);
+  const { user } = useUser();
+  const userEmail = user?.emailAddresses[0]?.emailAddress;
 
   useEffect(() => {
     const fetchChats = async () => {
+      if (!userEmail) return;
+
       const { data, error } = await supabase
         .from("Data")
-        .select("id, title, chatId");
+        .select("id, title, chatId, userEmail")
+        .eq("userEmail", userEmail);
 
       if (error) {
         console.error("Error fetching chats:", error.message);
@@ -25,24 +31,25 @@ export default function ChatPage() {
 
     fetchChats();
 
+    const channelName = `chat-changes-${userEmail?.replace(/[^a-zA-Z0-9]/g, "") || "default"}`;
     const subscription = supabase
-      .channel("chat-changes")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "Data",
-          filter: "chatId=neq.",
+          filter: `userEmail=eq.${userEmail}`,
         },
         (payload) => {
           console.log("Real-time payload:", payload);
           const newChat = payload.new as Chat;
-          if (newChat.id && newChat.title && newChat.chatId) {
+          if (newChat.id && newChat.title && newChat.chatId && newChat.userEmail === userEmail) {
             console.log("New chat inserted:", newChat);
             setChats((prevChats) => [...prevChats, newChat]);
           } else {
-            console.warn("Invalid chat data received:", newChat);
+            console.warn("Invalid or unauthorized chat data received:", newChat);
           }
         }
       )
@@ -58,7 +65,7 @@ export default function ChatPage() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []);
+  }, [userEmail]);
 
   const handleCardClick = (chatId: string) => {
     router.push(`/workspace/chat/${chatId}`);
