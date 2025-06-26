@@ -41,6 +41,7 @@ export default function AppSidebar() {
         setChats(data || []);
       }
     };
+    
     fetchChats();
 
     const subscription = supabase
@@ -125,9 +126,9 @@ export default function AppSidebar() {
               <Link href={item.href}>
                 <SidebarMenuButton
                   onClick={() => setActiveItem(item.label)}
-                  className={`w-full justify-start text-left py-3 px-4 rounded-lg text-base font-medium transition-all duration-200 ${
+                  className={`w-full justify-start text-left px-4 py-6 rounded-lg text-base font-medium transition-all duration-200 ${
                     activeItem === item.label
-                      ? "bg-gray-800 text-white shadow-sm"
+                      ? "bg-gray-800 py-6 text-white shadow-sm"
                       : "text-gray-300 hover:text-white hover:bg-gray-800/50"
                   }`}
                 >
