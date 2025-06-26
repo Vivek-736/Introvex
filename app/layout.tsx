@@ -13,7 +13,7 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Difras - AI-Powered Documentation Platform",
+  title: "Introvex - AI-Powered Documentation Platform, by Difras",
   description:
     "Simplify the documentation process for researchers with AI-generated LaTeX documents",
 };

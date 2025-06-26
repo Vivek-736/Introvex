@@ -36,12 +36,12 @@ export default function Navbar() {
             <div className="p-1 bg-black rounded-lg">
               <Image
                 src={"/favicon.png"}
-                alt="Difras Logo"
+                alt="Introvex Logo"
                 width={32}
                 height={32}
               />
             </div>
-            <span className="text-2xl font-medium text-white">Difras</span>
+            <span className="text-2xl font-medium text-white">Introvex</span>
           </Link>
 
           {/* Desktop Navigation */}

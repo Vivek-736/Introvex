@@ -31,8 +31,8 @@ export default function AppSidebar() {
           <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center shadow-sm">
             <img src="/favicon.png" alt="Logo" className="w-7 h-7" />
           </div>
-          <span className="text-white font-bold text-xl tracking-tight">
-            Difras
+          <span className="text-white font-bold text-sm md:text-base tracking-tight">
+            Introvex By{" "}<span className="italic">Difras</span>
           </span>
         </div>
       </SidebarHeader>

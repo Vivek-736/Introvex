@@ -25,7 +25,7 @@ export default function Hero() {
                 Research
               </span>
               <span className="block font-medium font-['Instrument_Serif']">
-                with Difras
+                with Introvex
               </span>
             </h1>
 
