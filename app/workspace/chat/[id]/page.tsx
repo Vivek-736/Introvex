@@ -287,7 +287,7 @@ const ChatIdPage = () => {
                 }
               }}
               disabled={sending}
-              className="flex-1 p-3 bg-transparent border-none text-white text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
+              className="flex-1 p-3 bg-transparent border-none text-white text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
             />
             <div className="flex items-center gap-3 ml-3">
               <button
@@ -301,7 +301,7 @@ const ChatIdPage = () => {
                 onClick={handleSend}
                 disabled={sending}
                 title="Send message"
-                className="bg-green-600 p-3 rounded-full hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="bg-gradient-to-t from-purple-500 to-purple-600 p-3 rounded-full hover:from-purple-700 hover:to-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {sending ? (
                   <span className="text-xs text-white">Sending...</span>
