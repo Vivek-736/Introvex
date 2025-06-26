@@ -12,7 +12,7 @@ import {
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home, FileText, Plus, MessageSquare, RefreshCw } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { supabase } from "@/services/SupabaseClient";
 
@@ -24,15 +24,20 @@ const menuItems = [
 
 export default function AppSidebar() {
   const [activeItem, setActiveItem] = useState("Dashboard");
-  type Chat = { id: number; title: string; chatId: string };
+  type Chat = { id: number; title: string; chatId: string; userEmail: string };
   const [chats, setChats] = useState<Chat[]>([]);
+  const { user } = useUser();
+  const userEmail = user?.emailAddresses[0]?.emailAddress;
 
   useEffect(() => {
     const fetchChats = async () => {
+      if (!userEmail) return;
+
       const { data, error } = await supabase
         .from("Data")
-        .select("id, title, chatId, created_at")
-        .order('created_at', { ascending: false });
+        .select("id, title, chatId, created_at, userEmail")
+        .eq("userEmail", userEmail)
+        .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching chats:", error.message);
@@ -41,23 +46,32 @@ export default function AppSidebar() {
         setChats(data || []);
       }
     };
-    
+
     fetchChats();
 
+    const channelName = `chat-changes-${
+      userEmail?.replace(/[^a-zA-Z0-9]/g, "") || "default"
+    }`;
+
     const subscription = supabase
-      .channel("chat-changes")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "Data",
-          filter: "chatId=neq.",
+          filter: `userEmail=eq.${userEmail}`,
         },
         (payload) => {
           console.log("Real-time payload:", payload);
           const newChat = payload.new as Chat;
-          if (newChat.id && newChat.title && newChat.chatId) {
+          if (
+            newChat.id &&
+            newChat.title &&
+            newChat.chatId &&
+            newChat.userEmail === userEmail
+          ) {
             console.log("New chat inserted:", newChat);
             setChats((prevChats) => {
               const updatedChats = [...prevChats, newChat];
@@ -65,7 +79,10 @@ export default function AppSidebar() {
               return updatedChats;
             });
           } else {
-            console.warn("Invalid chat data received:", newChat);
+            console.warn(
+              "Invalid or unauthorized chat data received:",
+              newChat
+            );
           }
         }
       )
@@ -83,12 +100,15 @@ export default function AppSidebar() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []);
+  }, [userEmail]);
 
   const handleRefresh = async () => {
+    if (!userEmail) return;
+
     const { data, error } = await supabase
       .from("Data")
-      .select("id, title, chatId");
+      .select("id, title, chatId, userEmail")
+      .eq("userEmail", userEmail);
     if (error) {
       console.error("Error refreshing chats:", error.message);
     } else {
