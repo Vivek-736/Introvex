@@ -24,28 +24,37 @@ const Chat = () => {
       const geminiResponse = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message: input, chatId }),
       });
-      const { response: botResponse } = await geminiResponse.json();
+      const data = await geminiResponse.json();
 
-      const messageString = [
-        input,
-        botResponse || "Hello there, pal! How can I help you today?",
-      ].join(",,,,");
-      const { data, error } = await supabase
+      if (!geminiResponse.ok) {
+        throw new Error(`API error: ${data.error || "Unknown error"}`);
+      }
+
+      const botResponse =
+        data.response ||
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "No response";
+      if (!botResponse || typeof botResponse !== "string") {
+        throw new Error("Invalid bot response from Gemini API");
+      }
+
+      const messageString = [`User: ${input}`, botResponse].join(",,,,");
+      const { data: insertedData, error } = await supabase
         .from("Data")
         .insert({
           created_at: new Date().toISOString(),
           userEmail,
           title: input,
           message: messageString,
-          chatId: chatId,
+          chatId,
         })
         .select();
 
       if (error) throw error;
 
-      console.log("Inserted chat data:", data);
+      console.log("Inserted chat data:", insertedData);
       router.push(`/workspace/chat/${chatId}`);
     } catch (error) {
       if (error instanceof Error) {

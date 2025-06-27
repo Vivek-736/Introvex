@@ -50,8 +50,9 @@ const ChatIdPage = () => {
           const processedMessages: Message[] = [];
 
           for (let i = 0; i < allMessages.length; i += 2) {
-            const userText = allMessages[i]?.trim() || "";
-            const botText = allMessages[i + 1]?.trim() || "";
+            const userText =
+              allMessages[i]?.trim().replace(/^User: /, "") || "";
+            const botText = allMessages[i + 1]?.trim().replace(/^ /, "") || "";
 
             if (userText) {
               processedMessages.push({ sender: "user", text: userText });
@@ -134,17 +135,30 @@ const ChatIdPage = () => {
       const geminiResponse = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message: input, chatId }),
       });
-      const { response: botResponse } = await geminiResponse.json();
+      const data = await geminiResponse.json();
+      console.log("Gemini API response:", data);
+
+      if (!geminiResponse.ok) {
+        throw new Error(`API error: ${data.error || "Unknown error"}`);
+      }
+
+      const botResponse =
+        data.response ||
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "No response";
+      if (!botResponse || typeof botResponse !== "string") {
+        throw new Error("Invalid bot response from Gemini API");
+      }
 
       const updatedMessage = [
         ...(currentMessage ? currentMessage.split(",,,,") : []),
-        input,
-        botResponse,
+        `User: ${input}`,
+        `Assistant: ${botResponse}`,
       ].join(",,,,");
 
-      const { data, error } = await supabase
+      const { data: updateData, error } = await supabase
         .from("Data")
         .update({
           message: updatedMessage,
@@ -158,8 +172,8 @@ const ChatIdPage = () => {
         throw error;
       }
 
-      if (data && data.length > 0) {
-        console.log("Updated chat data:", data);
+      if (updateData && updateData.length > 0) {
+        console.log("Updated chat data:", updateData);
       } else {
         console.warn("No rows updated, possible chatId mismatch:", chatId);
       }
