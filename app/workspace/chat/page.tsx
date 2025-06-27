@@ -37,7 +37,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br bg-black text-white p-8">
+    <div className="min-h-screen bg-gradient-to-br text-white p-8">
       <h1 className="text-3xl font-bold mb-10 text-center">Chat History</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {chats.length > 0 ? (

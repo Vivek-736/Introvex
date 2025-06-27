@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import styled from "styled-components";
 
@@ -10,12 +12,7 @@ interface ChatButtonProps {
 const ChatButton: React.FC<ChatButtonProps> = ({ text, onClick, disabled }) => {
   return (
     <StyledWrapper>
-      <button
-        className="frutiger-button"
-        onClick={onClick}
-        disabled={disabled}
-        title="Send message"
-      >
+      <button className="frutiger-button" onClick={onClick} disabled={disabled}>
         <div className="inner">
           <div className="top-white" />
           <span className="text">{text}</span>

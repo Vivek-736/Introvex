@@ -241,7 +241,7 @@ const ChatIdPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-black text-white flex flex-col items-center justify-center p-4 sm:p-10">
+    <div className="min-h-screen w-full text-white flex flex-col items-center justify-center p-4 sm:p-10">
       <div className="w-full max-w-4xl flex flex-col h-[88vh] rounded-lg shadow-lg">
         <div
           className="flex-1 overflow-y-auto px-4 pb-4 space-y-4"
