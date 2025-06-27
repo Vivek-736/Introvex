@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Prism from "prismjs";
-import { Mic } from "lucide-react";
 import { supabase } from "@/services/SupabaseClient";
 import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
@@ -304,13 +303,6 @@ const ChatIdPage = () => {
               className="flex-1 p-3 bg-transparent border-none text-white text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
             />
             <div className="flex items-center gap-3 ml-3">
-              <button
-                disabled={sending}
-                title="Voice input"
-                className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-full hover:bg-gray-700"
-              >
-                <Mic className="w-6 h-6" />
-              </button>
               <button
                 onClick={handleSend}
                 disabled={sending}
