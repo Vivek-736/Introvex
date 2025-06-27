@@ -4,7 +4,7 @@ import AppSidebar from "@/components/workspaceUI/AppSidebar";
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen w-full bg-slate-900">
+    <div className="min-h-screen w-full">
       <SidebarProvider>
         <AppSidebar />
         <div className="w-full min-h-screen">

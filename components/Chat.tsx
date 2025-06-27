@@ -1,6 +1,5 @@
 "use client";
 
-import { Mic } from "lucide-react";
 import React, { useState } from "react";
 import styled from "styled-components";
 import { supabase } from "@/services/SupabaseClient";
@@ -26,6 +25,7 @@ const Chat = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input, chatId }),
       });
+      
       const data = await geminiResponse.json();
 
       if (!geminiResponse.ok) {
@@ -91,27 +91,7 @@ const Chat = () => {
             </div>
             <div className="options">
               <div className="btns-add">
-                <button disabled={loading} title="Attach file">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width={20}
-                    height={20}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      fill="none"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 8v8a5 5 0 1 0 10 0V8m-5-5v3h0"
-                    />
-                  </svg>
-                </button>
-                <button disabled={loading} title="Voice input">
-                  <Mic className="w-5 h-5" />
-                </button>
-                <button disabled={loading} title="Settings">
+                <button disabled={loading} title="Web Search">
                   <svg
                     viewBox="0 0 24 24"
                     height={20}
