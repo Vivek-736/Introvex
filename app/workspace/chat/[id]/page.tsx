@@ -6,6 +6,7 @@ import Prism from "prismjs";
 import { supabase } from "@/services/SupabaseClient";
 import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
+import ChatButton from "@/components/workspaceUI/ChatButton";
 
 const ChatIdPage = () => {
   const params = useParams();
@@ -30,6 +31,7 @@ const ChatIdPage = () => {
       }
 
       console.log("Fetching chat with chatId:", chatId);
+
       try {
         const { data, error } = await supabase
           .from("Data")
@@ -303,23 +305,11 @@ const ChatIdPage = () => {
               className="flex-1 p-3 bg-transparent border-none text-white text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
             />
             <div className="flex items-center gap-3 ml-3">
-              <button
+              <ChatButton
+                text={sending ? ".........." : "Send"}
                 onClick={handleSend}
                 disabled={sending}
-                title="Send message"
-                className="bg-gradient-to-t from-purple-500 to-purple-600 p-3 rounded-full hover:from-purple-700 hover:to-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                {sending ? (
-                  <span className="text-xs text-white">Sending...</span>
-                ) : (
-                  <svg viewBox="0 0 512 512" className="w-6 h-6 text-white">
-                    <path
-                      fill="currentColor"
-                      d="M473 39.05a24 24 0 0 0-25.5-5.46L47.47 185h-.08a24 24 0 0 0 1 45.16l.41.13l137.3 58.63a16 16 0 0 0 15.54-3.59L422 80a7.07 7.07 0 0 1 10 10L226.66 310.26a16 16 0 0 0-3.59 15.54l58.65 137.38c.06.2.12.38.19.57c3.2 9.27 11.3 15.81 21.09 16.25h1a24.63 24.63 0 0 0 23-15.46L478.39 64.62A24 24 0 0 0 473 39.05"
-                    />
-                  </svg>
-                )}
-              </button>
+              />
             </div>
           </div>
         </div>
