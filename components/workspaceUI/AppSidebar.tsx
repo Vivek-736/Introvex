@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Home, FileText, Plus, MessageSquare, RefreshCw } from "lucide-react";
+import { Home, FileText, MessageSquare, RefreshCw, PlusCircleIcon } from "lucide-react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { supabase } from "@/services/SupabaseClient";
@@ -134,7 +134,7 @@ export default function AppSidebar() {
         <div className="mb-8">
           <Link href="/workspace">
             <Button className="w-full bg-white text-black hover:bg-gray-100 rounded-lg font-semibold text-base py-3 transition-all duration-200">
-              <Plus className="w-5 h-5 mr-3" />
+              <PlusCircleIcon className="w-5 h-5 mr-3" />
               New Research
             </Button>
           </Link>
