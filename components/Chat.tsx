@@ -6,6 +6,7 @@ import { supabase } from "@/services/SupabaseClient";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 const Chat = () => {
   const [input, setInput] = useState("");
@@ -25,7 +26,7 @@ const Chat = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input, chatId }),
       });
-      
+
       const data = await geminiResponse.json();
 
       if (!geminiResponse.ok) {
@@ -128,8 +129,24 @@ const Chat = () => {
           </div>
         </div>
         <div className="tags">
-          <span>Analyze the chat and draft a research paper</span>
-          <span>Write a code to generate a summary</span>
+          <span
+            onClick={() => {
+              const prompt = "Analyze the chat and draft a research paper";
+              navigator.clipboard.writeText(prompt);
+              toast.success("Prompt copied to clipboard!");
+            }}
+          >
+            Analyze the chat and draft a research paper
+          </span>
+          <span
+            onClick={() => {
+              const prompt = "Write a code to generate a summary";
+              navigator.clipboard.writeText(prompt);
+              toast.success("Prompt copied to clipboard!");
+            }}
+          >
+            Write a code to generate a summary
+          </span>
         </div>
       </div>
     </StyledWrapper>
