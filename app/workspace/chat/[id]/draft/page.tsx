@@ -306,7 +306,7 @@ const DraftPage = () => {
       toast.error(errorMessage);
       setIsCallActive(false);
       vapi.stop();
-      callEndedRef.current = true; // Trigger update on error to save partial conversation
+      callEndedRef.current = true;
     };
 
     vapi.on("call-start", handleCallStart);
