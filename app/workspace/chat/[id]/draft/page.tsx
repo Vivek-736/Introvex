@@ -227,7 +227,7 @@ const DraftPage = () => {
       const assistantOptions = {
         name: "AI Research Assistant",
         firstMessage:
-          "Hello! I'm here to help you draft, refine, and structure your research paper. Just let me know your topic and how you'd like to begin.",
+          `Hello ${userName} ! I'm here to help you draft, refine, and structure your research paper. Just let me know your topic and how you'd like to begin.`,
         transcriber: {
           provider: "deepgram",
           model: "nova-2",
