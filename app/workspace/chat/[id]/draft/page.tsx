@@ -27,6 +27,7 @@ const DraftPage = () => {
   const [isCallActive, setIsCallActive] = useState(false);
   const vapiConversationRef = useRef<any[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const callEndedRef = useRef(false);
 
   useEffect(() => {
     console.log("Vapi instance:", vapi);
@@ -34,7 +35,7 @@ const DraftPage = () => {
       "Vapi SDK version:",
       require("@vapi-ai/web/package.json").version
     );
-    
+
     const fetchChatData = async () => {
       if (!chatId) {
         console.warn("No chatId found in params or query");
@@ -65,7 +66,8 @@ const DraftPage = () => {
           for (let i = 0; i < allMessages.length; i += 2) {
             const userText =
               allMessages[i]?.trim().replace(/^User: /, "") || "";
-            const botText = allMessages[i + 1]?.trim().replace(/^ /, "") || "";
+            const botText =
+              allMessages[i + 1]?.trim().replace(/^Assistant: /, "") || "";
 
             if (userText) {
               processedMessages.push({ sender: "user", text: userText });
@@ -101,7 +103,6 @@ const DraftPage = () => {
               }
             }
           }
-
           setMessages(processedMessages);
         }
       } catch (error) {
@@ -111,7 +112,6 @@ const DraftPage = () => {
         setIsLoading(false);
       }
     };
-
     fetchChatData();
   }, [chatId]);
 
@@ -127,10 +127,116 @@ const DraftPage = () => {
   }, [messages]);
 
   useEffect(() => {
+    const updateSupabaseWithVapiConversation = async () => {
+      if (!chatId || !callEndedRef.current || !vapiConversation.length) return;
+
+      try {
+        const { data: currentData, error: fetchError } = await supabase
+          .from("Data")
+          .select("message")
+          .eq("chatId", chatId)
+          .maybeSingle();
+
+        if (fetchError) {
+          console.error("Error fetching current messages:", fetchError.message);
+          toast.error("Failed to fetch current messages.");
+          return;
+        }
+
+        const currentMessage = currentData?.message || "";
+        const existingMessages = currentMessage
+          ? currentMessage.split(",,,,")
+          : [];
+
+        const newVapiMessages = vapiConversation
+          .filter((msg) => msg.role !== "system")
+          .map(
+            (msg) =>
+              `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
+          )
+          .filter((msg) => !existingMessages.includes(msg));
+
+        if (newVapiMessages.length === 0) {
+          console.log("No new Vapi messages to append.");
+          return;
+        }
+
+        const updatedMessage = [...existingMessages, ...newVapiMessages].join(
+          ",,,,"
+        );
+
+        const { data: updateData, error: updateError } = await supabase
+          .from("Data")
+          .update({
+            message: updatedMessage,
+            created_at: new Date().toISOString(),
+          })
+          .eq("chatId", chatId)
+          .select();
+
+        if (updateError) {
+          console.error(
+            "Error updating Supabase with Vapi messages:",
+            updateError.message
+          );
+          toast.error("Failed to save Vapi conversation.");
+          return;
+        }
+
+        console.log("Updated Supabase with Vapi messages:", updateData);
+
+        const processedMessages: Message[] = [];
+        for (const msg of newVapiMessages) {
+          const [senderPrefix, text] = msg.split(": ", 2);
+          const sender = senderPrefix.toLowerCase() === "user" ? "user" : "bot";
+
+          const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+          let lastIndex = 0;
+          let match;
+
+          while ((match = codeBlockRegex.exec(text))) {
+            const [fullMatch, language, code] = match;
+            const beforeText = text.slice(lastIndex, match.index).trim();
+            if (beforeText) {
+              processedMessages.push({
+                sender,
+                text: cleanText(beforeText),
+              });
+            }
+            processedMessages.push({
+              sender,
+              text: code.trim(),
+              language: language || "plaintext",
+            });
+            lastIndex = match.index + fullMatch.length;
+          }
+
+          const remainingText = text.slice(lastIndex).trim();
+          if (remainingText) {
+            processedMessages.push({
+              sender,
+              text: cleanText(remainingText),
+            });
+          }
+        }
+
+        setMessages((prev) => [...prev, ...processedMessages]);
+        callEndedRef.current = false; // Reset for next call
+      } catch (error) {
+        console.error("Error in updateSupabaseWithVapiConversation:", error);
+        toast.error("Failed to process Vapi conversation.");
+      }
+    };
+
+    updateSupabaseWithVapiConversation();
+  }, [vapiConversation, chatId]);
+
+  useEffect(() => {
     const handleCallStart = () => {
       console.log("Vapi call has started...");
-      toast.success("Research assistant connected...");
+      toast.success("Research assistant connected. Please speak to continue.");
       setIsCallActive(true);
+      callEndedRef.current = false;
     };
 
     const handleSpeechStart = () => {
@@ -146,6 +252,7 @@ const DraftPage = () => {
       console.log("Full Vapi conversation:", vapiConversationRef.current);
       toast.success("Research assistant call ended...");
       setIsCallActive(false);
+      callEndedRef.current = true;
     };
 
     const handleMessage = (message: any) => {
@@ -167,14 +274,16 @@ const DraftPage = () => {
     };
 
     const handleError = (error: any) => {
-      console.error("Vapi error:", error, {
+      console.error("Vapi error (raw):", error);
+      console.error("Vapi error details:", {
         status: error?.status,
         errorType: error?.type,
-        errorMsg: error?.error?.message || error?.msg,
+        errorMsg: error?.error?.message || error?.msg || "Unknown error",
         errorDetails: error?.error?.details || error?.details,
         endedReason: error?.endedReason,
       });
-      let errorMessage = "Failed to start voice call. Please try again.";
+      let errorMessage =
+        "Failed to start voice call. An unexpected error occurred.";
       if (error?.status === 400) {
         errorMessage = `Invalid assistant configuration: ${
           error?.error?.message || "Bad Request"
@@ -184,11 +293,20 @@ const DraftPage = () => {
           "Voice call was ejected. Please check your Vapi configuration or microphone.";
       } else if (error?.endedReason?.includes("silence-timed-out")) {
         errorMessage =
-          "Call ended due to silence timeout. Please speak or check assistant settings.";
+          "Call ended due to silence timeout. Please speak after the assistant or check settings.";
+      } else if (
+        error?.endedReason?.includes("pipeline-error-11labs-request-timed-out")
+      ) {
+        errorMessage =
+          "Voice provider (ElevenLabs) timed out. Please configure ElevenLabs credentials in Vapi dashboard or use a different voice provider.";
+      } else if (!error) {
+        errorMessage =
+          "Unknown Vapi error. Please check your API key or network connection.";
       }
       toast.error(errorMessage);
       setIsCallActive(false);
       vapi.stop();
+      callEndedRef.current = true; // Trigger update on error to save partial conversation
     };
 
     vapi.on("call-start", handleCallStart);
@@ -197,6 +315,15 @@ const DraftPage = () => {
     vapi.on("call-end", handleCallEnd);
     vapi.on("message", handleMessage);
     vapi.on("error", handleError);
+
+    return () => {
+      vapi.off("call-start", handleCallStart);
+      vapi.off("speech-start", handleSpeechStart);
+      vapi.off("speech-end", handleSpeechEnd);
+      vapi.off("call-end", handleCallEnd);
+      vapi.off("message", handleMessage);
+      vapi.off("error", handleError);
+    };
   }, [vapi]);
 
   const cleanText = (text: string) => {
@@ -226,8 +353,7 @@ const DraftPage = () => {
 
       const assistantOptions = {
         name: "AI Research Assistant",
-        firstMessage:
-          `Hello ${userName} ! I'm here to help you draft, refine, and structure your research paper. Just let me know your topic and how you'd like to begin.`,
+        firstMessage: `Hello ${userName}! I'm here to help you draft, refine, and structure your research paper. Just let me know your topic and how you'd like to begin.`,
         transcriber: {
           provider: "deepgram",
           model: "nova-2",
@@ -281,13 +407,30 @@ const DraftPage = () => {
       // @ts-ignore
       await vapi.start(assistantOptions);
     } catch (error: any) {
-      console.error("Vapi start failed:", error);
-      if (error?.response?.data) {
-        console.error("Vapi server response:", error.response.data);
+      console.error("Vapi start failed:", error, {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        message: error?.message,
+      });
+      let errorMessage =
+        "Failed to start Vapi call. Please check your configuration.";
+      if (error?.response?.status === 400) {
+        errorMessage = `Invalid Vapi configuration: ${
+          error?.response?.data?.message || "Bad Request"
+        }. Please verify your assistant settings.`;
+      } else if (error?.endedReason?.includes("silence-timed-out")) {
+        errorMessage =
+          "Call ended due to silence timeout. Please speak after the assistant or check settings.";
+      } else if (
+        error?.endedReason?.includes("pipeline-error-11labs-request-timed-out")
+      ) {
+        errorMessage =
+          "Voice provider (ElevenLabs) timed out. Please configure ElevenLabs credentials in Vapi dashboard or use a different voice provider.";
+      } else if (!error) {
+        errorMessage =
+          "Unknown Vapi error. Please check your API key or network connection.";
       }
-      toast.error(
-        "Failed to start voice call. Please verify the assistant configuration."
-      );
+      toast.error(errorMessage);
       vapi.stop();
     }
   };
@@ -323,7 +466,9 @@ const DraftPage = () => {
             >
               <div
                 className={`max-w-[70%] p-4 rounded-lg shadow-md ${
-                  msg.sender === "user" ? "bg-white text-black" : "bg-gray-800"
+                  msg.sender === "user"
+                    ? "bg-white text-black"
+                    : "bg-gray-800 text-white"
                 }`}
               >
                 {msg.language ? (
