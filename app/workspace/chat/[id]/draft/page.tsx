@@ -33,7 +33,8 @@ const DraftPage = () => {
     console.log(
       "Vapi SDK version:",
       require("@vapi-ai/web/package.json").version
-    ); // Log SDK version
+    );
+    
     const fetchChatData = async () => {
       if (!chatId) {
         console.warn("No chatId found in params or query");
@@ -210,9 +211,9 @@ const DraftPage = () => {
   const handleVoiceAgentChat = async () => {
     try {
       const userName = user?.firstName || "User";
-      console.log("Clerk user:", user); // Debug Clerk user
+      console.log("Clerk user:", user);
       const conversationHistory = messages
-        .slice(-6) // ⬅️ Only include the last 6 exchanges to avoid request overflow
+        .slice(-6)
         .map((msg) =>
           msg.sender === "user"
             ? `User: ${msg.text}`
@@ -221,7 +222,7 @@ const DraftPage = () => {
               }`
         )
         .join("\n")
-        .slice(0, 1500); // ⬅️ Optional: Hard-trim to 1.5 KB max
+        .slice(0, 1500);
 
       const assistantOptions = {
         name: "AI Research Assistant",
