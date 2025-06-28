@@ -1,4 +1,4 @@
-# 🚀 Introvex: AI-Powered Research Companion
+# 🚀 Introvex: AI-Powered Research Assistant
 
 Welcome to **Introvex** — your intelligent assistant for streamlining research, gaining insights, and drafting research papers with ease! 🎓✨
 
