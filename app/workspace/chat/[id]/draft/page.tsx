@@ -27,7 +27,7 @@ const DraftPage = () => {
   const [isCallActive, setIsCallActive] = useState(false);
   const vapiConversationRef = useRef<any[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const callEndedRef = useRef(false);
+  const messageSetRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     console.log("Vapi instance:", vapi);
@@ -71,6 +71,7 @@ const DraftPage = () => {
 
             if (userText) {
               processedMessages.push({ sender: "user", text: userText });
+              messageSetRef.current.add(`User: ${userText}`);
             }
             if (botText) {
               const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -85,12 +86,20 @@ const DraftPage = () => {
                     sender: "bot",
                     text: cleanText(beforeText),
                   });
+                  messageSetRef.current.add(
+                    `Assistant: ${cleanText(beforeText)}`
+                  );
                 }
                 processedMessages.push({
                   sender: "bot",
                   text: code.trim(),
                   language: language || "plaintext",
                 });
+                messageSetRef.current.add(
+                  `Assistant: \`\`\`${
+                    language || "plaintext"
+                  }\n${code.trim()}\`\`\``
+                );
                 lastIndex = match.index + fullMatch.length;
               }
 
@@ -100,6 +109,9 @@ const DraftPage = () => {
                   sender: "bot",
                   text: cleanText(remainingText),
                 });
+                messageSetRef.current.add(
+                  `Assistant: ${cleanText(remainingText)}`
+                );
               }
             }
           }
@@ -126,117 +138,70 @@ const DraftPage = () => {
     Prism.highlightAll();
   }, [messages]);
 
-  useEffect(() => {
-    const updateSupabaseWithVapiConversation = async () => {
-      if (!chatId || !callEndedRef.current || !vapiConversation.length) return;
+  const updateSupabaseWithMessage = async (newMessages: string[]) => {
+    if (!chatId || !newMessages.length) return;
 
-      try {
-        const { data: currentData, error: fetchError } = await supabase
-          .from("Data")
-          .select("message")
-          .eq("chatId", chatId)
-          .maybeSingle();
+    try {
+      const { data: currentData, error: fetchError } = await supabase
+        .from("Data")
+        .select("message")
+        .eq("chatId", chatId)
+        .maybeSingle();
 
-        if (fetchError) {
-          console.error("Error fetching current messages:", fetchError.message);
-          toast.error("Failed to fetch current messages.");
-          return;
-        }
-
-        const currentMessage = currentData?.message || "";
-        const existingMessages = currentMessage
-          ? currentMessage.split(",,,,")
-          : [];
-
-        const newVapiMessages = vapiConversation
-          .filter((msg) => msg.role !== "system")
-          .map(
-            (msg) =>
-              `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
-          )
-          .filter((msg) => !existingMessages.includes(msg));
-
-        if (newVapiMessages.length === 0) {
-          console.log("No new Vapi messages to append.");
-          return;
-        }
-
-        const updatedMessage = [...existingMessages, ...newVapiMessages].join(
-          ",,,,"
-        );
-
-        const { data: updateData, error: updateError } = await supabase
-          .from("Data")
-          .update({
-            message: updatedMessage,
-            created_at: new Date().toISOString(),
-          })
-          .eq("chatId", chatId)
-          .select();
-
-        if (updateError) {
-          console.error(
-            "Error updating Supabase with Vapi messages:",
-            updateError.message
-          );
-          toast.error("Failed to save Vapi conversation.");
-          return;
-        }
-
-        console.log("Updated Supabase with Vapi messages:", updateData);
-
-        const processedMessages: Message[] = [];
-        for (const msg of newVapiMessages) {
-          const [senderPrefix, text] = msg.split(": ", 2);
-          const sender = senderPrefix.toLowerCase() === "user" ? "user" : "bot";
-
-          const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-          let lastIndex = 0;
-          let match;
-
-          while ((match = codeBlockRegex.exec(text))) {
-            const [fullMatch, language, code] = match;
-            const beforeText = text.slice(lastIndex, match.index).trim();
-            if (beforeText) {
-              processedMessages.push({
-                sender,
-                text: cleanText(beforeText),
-              });
-            }
-            processedMessages.push({
-              sender,
-              text: code.trim(),
-              language: language || "plaintext",
-            });
-            lastIndex = match.index + fullMatch.length;
-          }
-
-          const remainingText = text.slice(lastIndex).trim();
-          if (remainingText) {
-            processedMessages.push({
-              sender,
-              text: cleanText(remainingText),
-            });
-          }
-        }
-
-        setMessages((prev) => [...prev, ...processedMessages]);
-        callEndedRef.current = false; // Reset for next call
-      } catch (error) {
-        console.error("Error in updateSupabaseWithVapiConversation:", error);
-        toast.error("Failed to process Vapi conversation.");
+      if (fetchError) {
+        console.error("Error fetching current messages:", fetchError.message);
+        toast.error("Failed to fetch current messages.");
+        return;
       }
-    };
 
-    updateSupabaseWithVapiConversation();
-  }, [vapiConversation, chatId]);
+      const currentMessage = currentData?.message || "";
+      const existingMessages = currentMessage
+        ? currentMessage.split(",,,,").map((msg: any) => msg.trim())
+        : [];
+
+      const uniqueNewMessages = newMessages.filter(
+        (msg) => !existingMessages.includes(msg.trim())
+      );
+
+      if (uniqueNewMessages.length === 0) {
+        console.log("No new messages to append to Supabase.");
+        return;
+      }
+
+      const updatedMessage = [...existingMessages, ...uniqueNewMessages].join(
+        ",,,,"
+      );
+
+      const { data: updateData, error: updateError } = await supabase
+        .from("Data")
+        .upsert({
+          chatId,
+          message: updatedMessage,
+          created_at: new Date().toISOString(),
+        })
+        .select();
+
+      if (updateError) {
+        console.error(
+          "Error updating Supabase with messages:",
+          updateError.message
+        );
+        toast.error("Failed to save conversation.");
+        return;
+      }
+
+      console.log("Updated Supabase with messages:", updateData);
+    } catch (error) {
+      console.error("Error in updateSupabaseWithMessage:", error);
+      toast.error("Failed to process conversation.");
+    }
+  };
 
   useEffect(() => {
     const handleCallStart = () => {
       console.log("Vapi call has started...");
       toast.success("Research assistant connected. Please speak to continue.");
       setIsCallActive(true);
-      callEndedRef.current = false;
     };
 
     const handleSpeechStart = () => {
@@ -252,7 +217,6 @@ const DraftPage = () => {
       console.log("Full Vapi conversation:", vapiConversationRef.current);
       toast.success("Research assistant call ended...");
       setIsCallActive(false);
-      callEndedRef.current = true;
     };
 
     const handleMessage = (message: any) => {
@@ -262,6 +226,72 @@ const DraftPage = () => {
           console.log("Vapi conversation:", message.conversation);
           setVapiConversation(message.conversation);
           vapiConversationRef.current = message.conversation;
+
+          const newMessages: Message[] = [];
+          const supabaseMessages: string[] = [];
+
+          message.conversation
+            .filter((msg: any) => msg.role !== "system")
+            .forEach((msg: any) => {
+              const messageKey = `${
+                msg.role === "user" ? "User" : "Assistant"
+              }: ${msg.content.trim()}`;
+              if (!messageSetRef.current.has(messageKey)) {
+                messageSetRef.current.add(messageKey);
+                supabaseMessages.push(messageKey);
+
+                const sender = msg.role === "user" ? "user" : "bot";
+                const text = msg.content.trim();
+                const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+                let lastIndex = 0;
+                let match;
+
+                while ((match = codeBlockRegex.exec(text))) {
+                  const [fullMatch, language, code] = match;
+                  const beforeText = text.slice(lastIndex, match.index).trim();
+                  if (beforeText) {
+                    newMessages.push({
+                      sender,
+                      text: cleanText(beforeText),
+                    });
+                    messageSetRef.current.add(
+                      `${sender === "user" ? "User" : "Assistant"}: ${cleanText(
+                        beforeText
+                      )}`
+                    );
+                  }
+                  newMessages.push({
+                    sender,
+                    text: code.trim(),
+                    language: language || "plaintext",
+                  });
+                  messageSetRef.current.add(
+                    `${sender === "user" ? "User" : "Assistant"}: \`\`\`${
+                      language || "plaintext"
+                    }\n${code.trim()}\`\`\``
+                  );
+                  lastIndex = match.index + fullMatch.length;
+                }
+
+                const remainingText = text.slice(lastIndex).trim();
+                if (remainingText) {
+                  newMessages.push({
+                    sender,
+                    text: cleanText(remainingText),
+                  });
+                  messageSetRef.current.add(
+                    `${sender === "user" ? "User" : "Assistant"}: ${cleanText(
+                      remainingText
+                    )}`
+                  );
+                }
+              }
+            });
+
+          if (newMessages.length > 0) {
+            setMessages((prev) => [...prev, ...newMessages]);
+            updateSupabaseWithMessage(supabaseMessages);
+          }
         } else {
           console.warn(
             "Received undefined conversation from vapi.on(message)",
@@ -306,7 +336,6 @@ const DraftPage = () => {
       toast.error(errorMessage);
       setIsCallActive(false);
       vapi.stop();
-      callEndedRef.current = true;
     };
 
     vapi.on("call-start", handleCallStart);
@@ -392,7 +421,7 @@ const DraftPage = () => {
                   - Use code blocks if the user asks for code snippets in specific programming languages.
                   - If asked about formatting, give LaTeX, APA, or MLA examples as needed.
 
-                  Be polite, efficient, and keep the conversation productive. Always offer to help refine or clarify if the user sounds confused.
+                  Be polite, efficient, and keep the conversation productive. Always offer to err on the side of clarity if the user sounds confused.
               `.trim(),
             },
           ],
