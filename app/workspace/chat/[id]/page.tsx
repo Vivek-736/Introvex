@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Prism from "prismjs";
 import { supabase } from "@/services/SupabaseClient";
 import CustomLoading from "@/components/CustomLoading";
@@ -11,6 +11,7 @@ import ChatButton from "@/components/workspaceUI/ChatButton";
 const ChatIdPage = () => {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const chatIdFromParams = params.id;
   const chatIdFromQuery = searchParams.get("chatId");
   const chatId = chatIdFromParams || chatIdFromQuery;
@@ -20,6 +21,7 @@ const ChatIdPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,7 +91,6 @@ const ChatIdPage = () => {
               }
             }
           }
-
           setMessages(processedMessages);
         }
       } catch (error) {
@@ -240,6 +241,10 @@ const ChatIdPage = () => {
     toast.success("Code copied to clipboard!");
   };
 
+  const handleDraftRedirect = () => {
+    router.push(`/workspace/chat/${chatId}/draft`);
+  };
+
   return (
     <div className="min-h-screen w-full text-white bg-black flex flex-col items-center justify-center p-4 sm:p-10">
       <div className="w-full max-w-4xl flex flex-col h-[88vh] rounded-lg shadow-lg">
@@ -305,6 +310,13 @@ const ChatIdPage = () => {
               className="flex-1 p-3 bg-transparent border-none text-white text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
             />
             <div className="flex items-center gap-3 ml-3">
+              <button
+                className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm px-4 py-2 rounded-lg shadow-md hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
+                onClick={handleDraftRedirect}
+              >
+                Import Chat
+                <span className="absolute inset-0 glitter"></span>
+              </button>
               <ChatButton
                 text={sending ? ".........." : "Send"}
                 onClick={handleSend}
@@ -312,6 +324,42 @@ const ChatIdPage = () => {
               />
             </div>
           </div>
+          <style jsx>{`
+            @keyframes glitter {
+              0% {
+                background: radial-gradient(
+                  circle,
+                  rgba(255, 255, 255, 0.3) 0%,
+                  transparent 70%
+                );
+                background-size: 200% 200%;
+                background-position: 0% 0%;
+              }
+              50% {
+                background: radial-gradient(
+                  circle,
+                  rgba(255, 255, 255, 0.5) 0%,
+                  transparent 70%
+                );
+                background-size: 150% 150%;
+                background-position: 100% 100%;
+              }
+              100% {
+                background: radial-gradient(
+                  circle,
+                  rgba(255, 255, 255, 0.3) 0%,
+                  transparent 70%
+                );
+                background-size: 200% 200%;
+                background-position: 0% 0%;
+              }
+            }
+            .glitter {
+              animation: glitter 1.5s infinite;
+              pointer-events: none;
+              mix-blend-mode: overlay;
+            }
+          `}</style>
         </div>
       </div>
     </div>
