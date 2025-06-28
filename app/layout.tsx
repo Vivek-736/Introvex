@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import Provider from "./Provider";
+import { VapiProvider } from "@/context/VapiContext";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -45,7 +46,7 @@ export default function RootLayout({
                 disableTransitionOnChange
               >
                 <Toaster />
-                {children}
+                <VapiProvider>{children}</VapiProvider>
               </ThemeProvider>
             </Provider>
           </div>

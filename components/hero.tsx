@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Play, Bot, Brain, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 

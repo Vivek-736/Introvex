@@ -6,11 +6,16 @@ import Prism from "prismjs";
 import { supabase } from "@/services/SupabaseClient";
 import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
+import { useVapi } from "@/context/VapiContext";
+import { useUser } from "@clerk/nextjs";
+import { Bot, Phone } from "lucide-react";
 
 const DraftPage = () => {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const vapi = useVapi();
+  const { user } = useUser();
   const chatIdFromParams = params.id;
   const chatIdFromQuery = searchParams.get("chatId");
   const chatId = chatIdFromParams || chatIdFromQuery;
@@ -18,9 +23,17 @@ const DraftPage = () => {
   type Message = { sender: string; text: string; language?: string };
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [vapiConversation, setVapiConversation] = useState<any[]>([]);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const vapiConversationRef = useRef<any[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log("Vapi instance:", vapi);
+    console.log(
+      "Vapi SDK version:",
+      require("@vapi-ai/web/package.json").version
+    ); // Log SDK version
     const fetchChatData = async () => {
       if (!chatId) {
         console.warn("No chatId found in params or query");
@@ -91,7 +104,8 @@ const DraftPage = () => {
           setMessages(processedMessages);
         }
       } catch (error) {
-        console.error("Error in useEffect:", error);
+        console.error("Error in fetchChatData:", error);
+        toast.error("Failed to load chat data.");
       } finally {
         setIsLoading(false);
       }
@@ -111,6 +125,79 @@ const DraftPage = () => {
     Prism.highlightAll();
   }, [messages]);
 
+  useEffect(() => {
+    const handleCallStart = () => {
+      console.log("Vapi call has started...");
+      toast.success("Research assistant connected...");
+      setIsCallActive(true);
+    };
+
+    const handleSpeechStart = () => {
+      console.log("Assistant speech has started");
+    };
+
+    const handleSpeechEnd = () => {
+      console.log("Assistant speech has ended");
+    };
+
+    const handleCallEnd = () => {
+      console.log("Vapi call has ended...");
+      console.log("Full Vapi conversation:", vapiConversationRef.current);
+      toast.success("Research assistant call ended...");
+      setIsCallActive(false);
+    };
+
+    const handleMessage = (message: any) => {
+      try {
+        console.log("Raw Vapi message:", message);
+        if (message?.conversation) {
+          console.log("Vapi conversation:", message.conversation);
+          setVapiConversation(message.conversation);
+          vapiConversationRef.current = message.conversation;
+        } else {
+          console.warn(
+            "Received undefined conversation from vapi.on(message)",
+            message
+          );
+        }
+      } catch (error) {
+        console.error("Error handling Vapi message:", error, { message });
+      }
+    };
+
+    const handleError = (error: any) => {
+      console.error("Vapi error:", error, {
+        status: error?.status,
+        errorType: error?.type,
+        errorMsg: error?.error?.message || error?.msg,
+        errorDetails: error?.error?.details || error?.details,
+        endedReason: error?.endedReason,
+      });
+      let errorMessage = "Failed to start voice call. Please try again.";
+      if (error?.status === 400) {
+        errorMessage = `Invalid assistant configuration: ${
+          error?.error?.message || "Bad Request"
+        }. Please check your Vapi settings.`;
+      } else if (error?.msg?.includes("Meeting has ended")) {
+        errorMessage =
+          "Voice call was ejected. Please check your Vapi configuration or microphone.";
+      } else if (error?.endedReason?.includes("silence-timed-out")) {
+        errorMessage =
+          "Call ended due to silence timeout. Please speak or check assistant settings.";
+      }
+      toast.error(errorMessage);
+      setIsCallActive(false);
+      vapi.stop();
+    };
+
+    vapi.on("call-start", handleCallStart);
+    vapi.on("speech-start", handleSpeechStart);
+    vapi.on("speech-end", handleSpeechEnd);
+    vapi.on("call-end", handleCallEnd);
+    vapi.on("message", handleMessage);
+    vapi.on("error", handleError);
+  }, [vapi]);
+
   const cleanText = (text: string) => {
     return text.replace(/\*{1,2}([^*]+)\*{1,2}/g, "'$1'");
   };
@@ -120,13 +207,102 @@ const DraftPage = () => {
     toast.success("Code copied to clipboard!");
   };
 
-  const handleVoiceAgentChat = () => {
-    // Placeholder for Voice Agent Chat navigation or action
-    router.push(`/workspace/chat/${chatId}/voice`);
+  const handleVoiceAgentChat = async () => {
+    try {
+      const userName = user?.firstName || "User";
+      console.log("Clerk user:", user); // Debug Clerk user
+      const conversationHistory = messages
+        .slice(-6) // ⬅️ Only include the last 6 exchanges to avoid request overflow
+        .map((msg) =>
+          msg.sender === "user"
+            ? `User: ${msg.text}`
+            : `Assistant: ${msg.text}${
+                msg.language ? `\nLanguage: ${msg.language}` : ""
+              }`
+        )
+        .join("\n")
+        .slice(0, 1500); // ⬅️ Optional: Hard-trim to 1.5 KB max
+
+      const assistantOptions = {
+        name: "AI Research Assistant",
+        firstMessage:
+          "Hello! I'm here to help you draft, refine, and structure your research paper. Just let me know your topic and how you'd like to begin.",
+        transcriber: {
+          provider: "deepgram",
+          model: "nova-2",
+          language: "en",
+        },
+        voice: {
+          provider: "11labs",
+          voiceId: "sarah",
+          stability: 0.4,
+          similarityBoost: 0.8,
+          speed: 0.9,
+          style: 0.5,
+          useSpeakerBoost: true,
+        },
+        model: {
+          provider: "openai",
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content: `
+                  You are an AI research assistant conducting a real-time voice conversation to help a user draft a research paper.
+
+                  Context of the conversation:
+                  ${conversationHistory}
+
+                  Your objective:
+                  - Understand the user’s research topic and assist them in structuring their paper.
+                  - Ask clarifying questions to better understand their goals.
+                  - Recommend outlines, thesis statements, literature review strategies, or citation formats as needed.
+
+                  Tone & Style:
+                  - Speak clearly and professionally.
+                  - Keep responses concise and easy to follow (since this is a voice chat).
+                  - Avoid overly long or robotic answers.
+                  - Use code blocks if the user asks for code snippets in specific programming languages.
+                  - If asked about formatting, give LaTeX, APA, or MLA examples as needed.
+
+                  Be polite, efficient, and keep the conversation productive. Always offer to help refine or clarify if the user sounds confused.
+              `.trim(),
+            },
+          ],
+        },
+      };
+
+      console.log("Starting Vapi call with options:", assistantOptions);
+      console.log(
+        "🛠️ Final assistantOptions:",
+        JSON.stringify(assistantOptions, null, 2)
+      );
+      // @ts-ignore
+      await vapi.start(assistantOptions);
+    } catch (error: any) {
+      console.error("Vapi start failed:", error);
+      if (error?.response?.data) {
+        console.error("Vapi server response:", error.response.data);
+      }
+      toast.error(
+        "Failed to start voice call. Please verify the assistant configuration."
+      );
+      vapi.stop();
+    }
+  };
+
+  const handleStopCall = () => {
+    try {
+      vapi.stop();
+      console.log("Vapi call stopped manually");
+      toast.info("Voice call stopped.");
+    } catch (error) {
+      console.error("Error stopping Vapi call:", error);
+      toast.error("Failed to stop voice call.");
+    }
   };
 
   const handleDraftResearchPaper = () => {
-    // Placeholder for Draft Research Paper navigation or action
     router.push(`/workspace/chat/${chatId}/research`);
   };
 
@@ -181,13 +357,32 @@ const DraftPage = () => {
 
         <div className="p-4 rounded-lg border-t border-gray-700 bg-gray-900">
           <div className="flex items-center justify-center gap-6">
-            <button
-              className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 animate-glitter"
-              onClick={handleVoiceAgentChat}
-            >
-              Voice Agent Chat
-              <span className="absolute inset-0 glitter"></span>
-            </button>
+            <div className="relative">
+              {isCallActive && (
+                <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-75 animate-ping" />
+              )}
+              <button
+                className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 animate-glitter flex items-center gap-2"
+                onClick={handleVoiceAgentChat}
+                disabled={isCallActive}
+              >
+                {isCallActive ? (
+                  <Bot className="h-5 w-5" />
+                ) : (
+                  "Voice Agent Chat"
+                )}
+                <span className="absolute inset-0 glitter"></span>
+              </button>
+            </div>
+            {isCallActive && (
+              <button
+                className="relative bg-rose-600 text-white text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-rose-700 transition-all duration-300"
+                onClick={handleStopCall}
+              >
+                <Phone className="h-5 w-5 inline-block mr-2" />
+                Stop Call
+              </button>
+            )}
             <button
               className="relative bg-white text-black text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-gray-200 transition-all duration-300 border-2 border-gray-800 animate-pulse"
               onClick={handleDraftResearchPaper}
@@ -246,6 +441,16 @@ const DraftPage = () => {
             }
             .animate-pulse {
               animation: pulse 2s infinite;
+            }
+            @keyframes ping {
+              75%,
+              100% {
+                transform: scale(2);
+                opacity: 0;
+              }
+            }
+            .animate-ping {
+              animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
             }
           `}</style>
         </div>
