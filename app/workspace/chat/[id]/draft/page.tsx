@@ -64,8 +64,10 @@ const DraftPage = () => {
           const messageString = data.message;
           const allMessages = messageString.split(",,,,");
           for (let i = 0; i < allMessages.length; i += 2) {
-            const userText = allMessages[i]?.trim().replace(/^User: /, "") || "";
-            const botText = allMessages[i + 1]?.trim().replace(/^Assistant: /, "") || "";
+            const userText =
+              allMessages[i]?.trim().replace(/^User: /, "") || "";
+            const botText =
+              allMessages[i + 1]?.trim().replace(/^Assistant: /, "") || "";
 
             if (userText) {
               processedMessages.push({ sender: "user", text: userText });
@@ -85,7 +87,9 @@ const DraftPage = () => {
                     sender: "bot",
                     text: cleanText(beforeText),
                   });
-                  messageSetRef.current.add(`Assistant: ${cleanText(beforeText)}`);
+                  messageSetRef.current.add(
+                    `Assistant: ${cleanText(beforeText)}`
+                  );
                 }
                 processedMessages.push({
                   sender: "bot",
@@ -93,7 +97,9 @@ const DraftPage = () => {
                   language: language || "plaintext",
                 });
                 messageSetRef.current.add(
-                  `Assistant: \`\`\`${language || "plaintext"}\n${code.trim()}\`\`\``
+                  `Assistant: \`\`\`${
+                    language || "plaintext"
+                  }\n${code.trim()}\`\`\``
                 );
                 lastIndex = match.index + fullMatch.length;
               }
@@ -104,7 +110,9 @@ const DraftPage = () => {
                   sender: "bot",
                   text: cleanText(remainingText),
                 });
-                messageSetRef.current.add(`Assistant: ${cleanText(remainingText)}`);
+                messageSetRef.current.add(
+                  `Assistant: ${cleanText(remainingText)}`
+                );
               }
             }
           }
@@ -120,13 +128,18 @@ const DraftPage = () => {
 
               while ((match = codeBlockRegex.exec(msg.Assistant))) {
                 const [fullMatch, language, code] = match;
-                const beforeText = msg.Assistant.slice(lastIndex, match.index).trim();
+                const beforeText = msg.Assistant.slice(
+                  lastIndex,
+                  match.index
+                ).trim();
                 if (beforeText) {
                   processedMessages.push({
                     sender: "bot",
                     text: cleanText(beforeText),
                   });
-                  messageSetRef.current.add(`Assistant: ${cleanText(beforeText)}`);
+                  messageSetRef.current.add(
+                    `Assistant: ${cleanText(beforeText)}`
+                  );
                 }
                 processedMessages.push({
                   sender: "bot",
@@ -134,7 +147,9 @@ const DraftPage = () => {
                   language: language || "plaintext",
                 });
                 messageSetRef.current.add(
-                  `Assistant: \`\`\`${language || "plaintext"}\n${code.trim()}\`\`\``
+                  `Assistant: \`\`\`${
+                    language || "plaintext"
+                  }\n${code.trim()}\`\`\``
                 );
                 lastIndex = match.index + fullMatch.length;
               }
@@ -145,7 +160,9 @@ const DraftPage = () => {
                   sender: "bot",
                   text: cleanText(remainingText),
                 });
-                messageSetRef.current.add(`Assistant: ${cleanText(remainingText)}`);
+                messageSetRef.current.add(
+                  `Assistant: ${cleanText(remainingText)}`
+                );
               }
             }
             if (msg.user) {
@@ -168,7 +185,8 @@ const DraftPage = () => {
 
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -176,7 +194,9 @@ const DraftPage = () => {
     Prism.highlightAll();
   }, [messages]);
 
-  const updateSupabaseWithMessage = async (newMessages: { Assistant: string; user: string }[]) => {
+  const updateSupabaseWithMessage = async (
+    newMessages: { Assistant: string; user: string }[]
+  ) => {
     if (!chatId || !newMessages.length) return;
 
     try {
@@ -225,7 +245,10 @@ const DraftPage = () => {
         .select();
 
       if (updateError) {
-        console.error("Error updating Supabase with messages:", updateError.message);
+        console.error(
+          "Error updating Supabase with messages:",
+          updateError.message
+        );
         toast.error("Failed to save conversation.");
         return;
       }
@@ -269,12 +292,17 @@ const DraftPage = () => {
 
           const newMessages: Message[] = [];
           const supabaseMessages: { Assistant: string; user: string }[] = [];
-          let currentPair: { Assistant: string; user: string } = { Assistant: "", user: "" };
+          let currentPair: { Assistant: string; user: string } = {
+            Assistant: "",
+            user: "",
+          };
 
           message.conversation
             .filter((msg: any) => msg.role !== "system")
             .forEach((msg: any) => {
-              const messageKey = `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content.trim()}`;
+              const messageKey = `${
+                msg.role === "user" ? "User" : "Assistant"
+              }: ${msg.content.trim()}`;
               if (!messageSetRef.current.has(messageKey)) {
                 messageSetRef.current.add(messageKey);
 
@@ -293,10 +321,14 @@ const DraftPage = () => {
                       text: cleanText(beforeText),
                     });
                     messageSetRef.current.add(
-                      `${sender === "user" ? "User" : "Assistant"}: ${cleanText(beforeText)}`
+                      `${sender === "user" ? "User" : "Assistant"}: ${cleanText(
+                        beforeText
+                      )}`
                     );
                     if (sender === "bot") {
-                      currentPair.Assistant += beforeText ? `${cleanText(beforeText)}\n` : "";
+                      currentPair.Assistant += beforeText
+                        ? `${cleanText(beforeText)}\n`
+                        : "";
                     } else {
                       currentPair.user += beforeText ? `${beforeText}\n` : "";
                     }
@@ -307,12 +339,18 @@ const DraftPage = () => {
                     language: language || "plaintext",
                   });
                   messageSetRef.current.add(
-                    `${sender === "user" ? "User" : "Assistant"}: \`\`\`${language || "plaintext"}\n${code.trim()}\`\`\``
+                    `${sender === "user" ? "User" : "Assistant"}: \`\`\`${
+                      language || "plaintext"
+                    }\n${code.trim()}\`\`\``
                   );
                   if (sender === "bot") {
-                    currentPair.Assistant += `\`\`\`${language || "plaintext"}\n${code.trim()}\`\`\`\n`;
+                    currentPair.Assistant += `\`\`\`${
+                      language || "plaintext"
+                    }\n${code.trim()}\`\`\`\n`;
                   } else {
-                    currentPair.user += `\`\`\`${language || "plaintext"}\n${code.trim()}\`\`\`\n`;
+                    currentPair.user += `\`\`\`${
+                      language || "plaintext"
+                    }\n${code.trim()}\`\`\`\n`;
                   }
                   lastIndex = match.index + fullMatch.length;
                 }
@@ -324,7 +362,9 @@ const DraftPage = () => {
                     text: cleanText(remainingText),
                   });
                   messageSetRef.current.add(
-                    `${sender === "user" ? "User" : "Assistant"}: ${cleanText(remainingText)}`
+                    `${sender === "user" ? "User" : "Assistant"}: ${cleanText(
+                      remainingText
+                    )}`
                   );
                   if (sender === "bot") {
                     currentPair.Assistant += cleanText(remainingText);
@@ -531,8 +571,40 @@ const DraftPage = () => {
     }
   };
 
-  const handleDraftResearchPaper = () => {
-    router.push(`/workspace/chat/${chatId}/research`);
+  const handleDraftResearchPaper = async () => {
+    try {
+      const userName = user?.firstName || "User";
+      console.log(
+        "Initiating research paper draft for chatId:",
+        chatId,
+        "by user:",
+        userName
+      );
+
+      const response = await fetch("/api/draft-research-paper", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId, userName }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error from draft-research-paper API:", errorData);
+        toast.error(errorData.error || "Failed to generate research paper.");
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Research paper generated successfully:", data);
+      toast.success("Research paper generated successfully!");
+      
+      router.push(`/workspace/chat/${chatId}/research`);
+    } catch (error) {
+      console.error("Error in handleDraftResearchPaper:", error);
+      toast.error("Failed to initiate research paper generation.");
+    }
   };
 
   return (
