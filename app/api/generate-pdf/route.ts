@@ -18,7 +18,12 @@ function sanitizeMarkdown(md: string): string[] {
     .filter(Boolean);
 }
 
-function wrapText(text: string, maxWidth: number, font: any, fontSize: number): string[] {
+function wrapText(
+  text: string,
+  maxWidth: number,
+  font: any,
+  fontSize: number
+): string[] {
   const words = text.split(" ");
   const lines = [];
   let line = "";
@@ -54,8 +59,8 @@ export async function POST(req: Request) {
 
     const fontSize = 12;
     const lineSpacing = fontSize + 4;
-    const headingSpacing = 8; // space after headings
-    const paragraphSpacing = 6; // space after each paragraph
+    const headingSpacing = 8;
+    const paragraphSpacing = 6;
     const margin = 50;
     const maxTextWidth = width - margin * 2;
     let y = height - margin;
@@ -78,11 +83,15 @@ export async function POST(req: Request) {
     let isFirstParagraph = true;
 
     for (const p of contentLines) {
-      // Centered Title
       if (isFirstParagraph && p.toLowerCase().startsWith("title:")) {
         const titleText = p.replace(/^title:\s*/i, "").trim();
         const titleFontSize = 16;
-        const titleLines = wrapText(titleText, maxTextWidth, bold, titleFontSize);
+        const titleLines = wrapText(
+          titleText,
+          maxTextWidth,
+          bold,
+          titleFontSize
+        );
         for (const line of titleLines) {
           const textWidth = bold.widthOfTextAtSize(line, titleFontSize);
           page.drawText(line, {
@@ -99,11 +108,13 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Centered Author
       if (p.toLowerCase().startsWith("author:")) {
         const authorText = p.replace(/^author:\s*/i, "").trim();
         const authorFontSize = 12;
-        const authorWidth = bold.widthOfTextAtSize(`Author: ${authorText}`, authorFontSize);
+        const authorWidth = bold.widthOfTextAtSize(
+          `Author: ${authorText}`,
+          authorFontSize
+        );
         page.drawText(`Author: ${authorText}`, {
           x: (width - authorWidth) / 2,
           y,
@@ -115,8 +126,7 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Section Header and Content
-      const isHeader = sectionHeaders.some(h =>
+      const isHeader = sectionHeaders.some((h) =>
         p.toLowerCase().startsWith(h.toLowerCase() + ":")
       );
 
@@ -125,7 +135,6 @@ export async function POST(req: Request) {
         const header = split[0].trim();
         const content = split.slice(1).join(":").trim();
 
-        // Draw header
         page.drawText(`${header}:`, {
           x: margin,
           y,
@@ -135,7 +144,6 @@ export async function POST(req: Request) {
         });
         y -= headingSpacing + fontSize;
 
-        // Draw content
         const lines = wrapText(content, maxTextWidth, font, fontSize);
         for (const line of lines) {
           if (y < margin + lineSpacing) {
@@ -157,7 +165,6 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Regular Paragraphs
       const lines = wrapText(p, maxTextWidth, font, fontSize);
       for (const line of lines) {
         if (y < margin + lineSpacing) {
