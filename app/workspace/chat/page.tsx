@@ -24,7 +24,7 @@ export default function ChatPage() {
       if (error) {
         console.error("Error fetching chats:", error.message);
       } else {
-        console.log("Fetched chats:", data);
+        // console.log("Fetched chats:", data);
         setChats(data || []);
       }
     };

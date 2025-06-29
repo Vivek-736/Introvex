@@ -4,7 +4,7 @@ import { supabase } from "@/services/SupabaseClient";
 export async function POST(request: Request) {
   try {
     const { message, chatId } = await request.json();
-    console.log("Received request:", { message, chatId });
+    // console.log("Received request:", { message, chatId });
 
     if (!message) {
       return NextResponse.json(

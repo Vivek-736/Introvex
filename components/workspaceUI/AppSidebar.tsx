@@ -42,7 +42,7 @@ export default function AppSidebar() {
       if (error) {
         console.error("Error fetching chats:", error.message);
       } else {
-        console.log("Fetched chats:", data);
+        // console.log("Fetched chats:", data);
         setChats(data || []);
       }
     };
@@ -72,10 +72,10 @@ export default function AppSidebar() {
             newChat.chatId &&
             newChat.userEmail === userEmail
           ) {
-            console.log("New chat inserted:", newChat);
+            // console.log("New chat inserted:", newChat);
             setChats((prevChats) => {
               const updatedChats = [...prevChats, newChat];
-              console.log("Updated chats state:", updatedChats);
+              // console.log("Updated chats state:", updatedChats);
               return updatedChats;
             });
           } else {
@@ -87,7 +87,7 @@ export default function AppSidebar() {
         }
       )
       .subscribe((status) => {
-        console.log("Subscription status:", status);
+        // console.log("Subscription status:", status);
         if (status === "SUBSCRIBED") {
           console.log("Successfully subscribed to real-time updates");
         } else if (status === "CHANNEL_ERROR") {
@@ -112,7 +112,7 @@ export default function AppSidebar() {
     if (error) {
       console.error("Error refreshing chats:", error.message);
     } else {
-      console.log("Refreshed chats:", data);
+      // console.log("Refreshed chats:", data);
       setChats(data || []);
     }
   };

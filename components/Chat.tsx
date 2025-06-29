@@ -55,7 +55,7 @@ const Chat = () => {
 
       if (error) throw error;
 
-      console.log("Inserted chat data:", insertedData);
+      // console.log("Inserted chat data:", insertedData);
       router.push(`/workspace/chat/${chatId}`);
     } catch (error) {
       if (error instanceof Error) {

@@ -32,7 +32,7 @@ const ChatIdPage = () => {
         return;
       }
 
-      console.log("Fetching chat with chatId:", chatId);
+      // console.log("Fetching chat with chatId:", chatId);
 
       try {
         const { data, error } = await supabase
@@ -121,7 +121,7 @@ const ChatIdPage = () => {
     setMessages((prev) => [...prev, newUserMessage]);
 
     try {
-      console.log("Sending message with chatId:", chatId);
+      // console.log("Sending message with chatId:", chatId);
       const { data: currentData, error: fetchError } = await supabase
         .from("Data")
         .select("message")
@@ -140,7 +140,7 @@ const ChatIdPage = () => {
         body: JSON.stringify({ message: input, chatId }),
       });
       const data = await geminiResponse.json();
-      console.log("Gemini API response:", data);
+      // console.log("Gemini API response:", data);
 
       if (!geminiResponse.ok) {
         throw new Error(`API error: ${data.error || "Unknown error"}`);
@@ -175,7 +175,7 @@ const ChatIdPage = () => {
       }
 
       if (updateData && updateData.length > 0) {
-        console.log("Updated chat data:", updateData);
+        // console.log("Updated chat data:", updateData);
       } else {
         console.warn("No rows updated, possible chatId mismatch:", chatId);
       }

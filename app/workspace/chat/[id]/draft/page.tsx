@@ -30,11 +30,11 @@ const DraftPage = () => {
   const messageSetRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    console.log("Vapi instance:", vapi);
-    console.log(
-      "Vapi SDK version:",
-      require("@vapi-ai/web/package.json").version
-    );
+    // console.log("Vapi instance:", vapi);
+    // console.log(
+    //   "Vapi SDK version:",
+    //   require("@vapi-ai/web/package.json").version
+    // );
 
     const fetchChatData = async () => {
       if (!chatId) {
@@ -43,7 +43,7 @@ const DraftPage = () => {
         return;
       }
 
-      console.log("Fetching chat with chatId:", chatId);
+      // console.log("Fetching chat with chatId:", chatId);
 
       try {
         const { data, error } = await supabase
@@ -223,7 +223,7 @@ const DraftPage = () => {
       );
 
       if (uniqueNewMessages.length === 0) {
-        console.log("No new messages to append to Supabase.");
+        // console.log("No new messages to append to Supabase.");
         return;
       }
 
@@ -253,7 +253,7 @@ const DraftPage = () => {
         return;
       }
 
-      console.log("Updated Supabase with messages:", updateData);
+      // console.log("Updated Supabase with messages:", updateData);
     } catch (error) {
       console.error("Error in updateSupabaseWithMessage:", error);
       toast.error("Failed to process conversation.");
@@ -262,31 +262,31 @@ const DraftPage = () => {
 
   useEffect(() => {
     const handleCallStart = () => {
-      console.log("Vapi call has started...");
+      // console.log("Vapi call has started...");
       toast.success("Research assistant connected. Please speak to continue.");
       setIsCallActive(true);
     };
 
     const handleSpeechStart = () => {
-      console.log("Assistant speech has started");
+      // console.log("Assistant speech has started");
     };
 
     const handleSpeechEnd = () => {
-      console.log("Assistant speech has ended");
+      // console.log("Assistant speech has ended");
     };
 
     const handleCallEnd = () => {
-      console.log("Vapi call has ended...");
-      console.log("Full Vapi conversation:", vapiConversationRef.current);
+      // console.log("Vapi call has ended...");
+      // console.log("Full Vapi conversation:", vapiConversationRef.current);
       toast.success("Research assistant call ended...");
       setIsCallActive(false);
     };
 
     const handleMessage = (message: any) => {
       try {
-        console.log("Raw Vapi message:", message);
+        // console.log("Raw Vapi message:", message);
         if (message?.conversation) {
-          console.log("Vapi conversation:", message.conversation);
+          // console.log("Vapi conversation:", message.conversation);
           setVapiConversation(message.conversation);
           vapiConversationRef.current = message.conversation;
 
@@ -463,7 +463,7 @@ const DraftPage = () => {
   const handleVoiceAgentChat = async () => {
     try {
       const userName = user?.firstName || "User";
-      console.log("Clerk user:", user);
+      // console.log("Clerk user:", user);
       const conversationHistory = messages
         .slice(-6)
         .map((msg) =>
@@ -524,11 +524,11 @@ const DraftPage = () => {
         },
       };
 
-      console.log("Starting Vapi call with options:", assistantOptions);
-      console.log(
-        "🛠️ Final assistantOptions:",
-        JSON.stringify(assistantOptions, null, 2)
-      );
+      // console.log("Starting Vapi call with options:", assistantOptions);
+      // console.log(
+      //   "🛠️ Final assistantOptions:",
+      //   JSON.stringify(assistantOptions, null, 2)
+      // );
       // @ts-ignore
       await vapi.start(assistantOptions);
     } catch (error: any) {
@@ -563,7 +563,7 @@ const DraftPage = () => {
   const handleStopCall = () => {
     try {
       vapi.stop();
-      console.log("Vapi call stopped manually");
+      // console.log("Vapi call stopped manually");
       toast.info("Voice call stopped.");
     } catch (error) {
       console.error("Error stopping Vapi call:", error);
@@ -574,12 +574,12 @@ const DraftPage = () => {
   const handleDraftResearchPaper = async () => {
     try {
       const userName = user?.firstName || "User";
-      console.log(
-        "Initiating research paper draft for chatId:",
-        chatId,
-        "by user:",
-        userName
-      );
+      // console.log(
+      //   "Initiating research paper draft for chatId:",
+      //   chatId,
+      //   "by user:",
+      //   userName
+      // );
 
       const response = await fetch("/api/draft-research-paper", {
         method: "POST",
@@ -597,7 +597,7 @@ const DraftPage = () => {
       }
 
       const data = await response.json();
-      console.log("Research paper generated successfully:", data);
+      // console.log("Research paper generated successfully:", data);
       toast.success("Research paper generated successfully!");
       
       router.push(`/workspace/chat/${chatId}/research`);
