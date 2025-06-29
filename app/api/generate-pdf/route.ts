@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     const fontSize = 12;
     const lineSpacing = fontSize + 4;
     const sectionGap = 20;
-    const headingToContentGap = 6;
+    const headingToContentGap = 12;
     const paragraphGap = 10;
     const margin = 50;
     const maxTextWidth = width - margin * 2;
