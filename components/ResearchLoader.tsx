@@ -3,7 +3,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const Loader = () => {
+const ResearchLoader = () => {
   return (
     <StyledWrapper className='min-h-screen flex items-center justify-center bg-gray-900'>
       <div className="loader">
@@ -825,4 +825,4 @@ const StyledWrapper = styled.div`
     }
   }`;
 
-export default Loader;
+export default ResearchLoader;
