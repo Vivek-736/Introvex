@@ -57,13 +57,14 @@ export async function POST(req: Request) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const fontSize = 12;
-    const lineSpacing = fontSize + 4;
-    const sectionGap = 20;
-    const headingToContentGap = 12;
-    const paragraphGap = 10;
-    const margin = 50;
+    const baseFontSize = 12;
+    const titleFontSize = baseFontSize * 1.5;
+    const lineSpacing = baseFontSize * 1.5;
+    const margin = width * 0.1;
     const maxTextWidth = width - margin * 2;
+    const sectionGap = baseFontSize * 2;
+    const headingToContentGap = baseFontSize * 1.2;
+    const paragraphGap = baseFontSize * 0.8;
     let y = height - margin;
 
     const sectionHeaders = [
@@ -88,7 +89,6 @@ export async function POST(req: Request) {
 
       if (isFirstParagraph && p.toLowerCase().startsWith("title:")) {
         const titleText = p.replace(/^title:\s*/i, "").trim();
-        const titleFontSize = 16;
         const titleLines = wrapText(
           titleText,
           maxTextWidth,
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
         );
         for (const line of titleLines) {
           const textWidth = bold.widthOfTextAtSize(line, titleFontSize);
-          if (y < margin + titleFontSize + 5) {
+          if (y < margin + titleFontSize + lineSpacing) {
             page = pdfDoc.addPage([width, height]);
             y = height - margin;
           }
@@ -108,16 +108,16 @@ export async function POST(req: Request) {
             size: titleFontSize,
             color: rgb(0, 0, 0),
           });
-          y -= titleFontSize + 2;
+          y -= lineSpacing;
         }
-        y -= 10;
+        y -= sectionGap;
         isFirstParagraph = false;
         continue;
       }
 
       if (p.toLowerCase().startsWith("author:")) {
         const authorText = p.replace(/^author:\s*/i, "").trim();
-        const authorFontSize = 12;
+        const authorFontSize = baseFontSize;
         const authorStr = `Author: ${authorText}`;
         const authorWidth = bold.widthOfTextAtSize(authorStr, authorFontSize);
 
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
           size: authorFontSize,
           color: rgb(0.1, 0.1, 0.1),
         });
-        y -= authorFontSize + sectionGap;
+        y -= lineSpacing + sectionGap;
         continue;
       }
 
@@ -145,8 +145,13 @@ export async function POST(req: Request) {
         const header = split[0].trim();
         const content = split.slice(1).join(":").trim();
 
-        const headerHeight = fontSize + 1 + headingToContentGap;
-        const contentLines = wrapText(content, maxTextWidth, font, fontSize);
+        const headerHeight = baseFontSize * 1.1 + headingToContentGap;
+        const contentLines = wrapText(
+          content,
+          maxTextWidth,
+          font,
+          baseFontSize
+        );
         const contentHeight = contentLines.length * lineSpacing;
 
         if (y < margin + headerHeight + contentHeight) {
@@ -159,7 +164,7 @@ export async function POST(req: Request) {
           x: margin,
           y,
           font: bold,
-          size: fontSize + 1,
+          size: baseFontSize * 1.1,
           color: rgb(0, 0, 0),
         });
 
@@ -175,7 +180,7 @@ export async function POST(req: Request) {
             x: margin,
             y,
             font,
-            size: fontSize,
+            size: baseFontSize,
             color: rgb(0, 0, 0),
           });
           y -= lineSpacing;
@@ -185,7 +190,7 @@ export async function POST(req: Request) {
         continue;
       }
 
-      const lines = wrapText(p, maxTextWidth, font, fontSize);
+      const lines = wrapText(p, maxTextWidth, font, baseFontSize);
       const blockHeight = lines.length * lineSpacing;
 
       if (y < margin + blockHeight) {
@@ -198,7 +203,7 @@ export async function POST(req: Request) {
           x: margin,
           y,
           font,
-          size: fontSize,
+          size: baseFontSize,
           color: rgb(0, 0, 0),
         });
         y -= lineSpacing;
