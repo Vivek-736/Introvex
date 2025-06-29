@@ -59,8 +59,9 @@ export async function POST(req: Request) {
 
     const fontSize = 12;
     const lineSpacing = fontSize + 4;
-    const headingSpacing = 8;
-    const paragraphSpacing = 6;
+    const sectionGap = 20; // large gap before section heading
+    const headingToContentGap = 6; // small gap between heading and its first line
+    const paragraphGap = 10; // between content blocks
     const margin = 50;
     const maxTextWidth = width - margin * 2;
     let y = height - margin;
@@ -82,7 +83,10 @@ export async function POST(req: Request) {
 
     let isFirstParagraph = true;
 
-    for (const p of contentLines) {
+    for (let i = 0; i < contentLines.length; i++) {
+      const p = contentLines[i];
+
+      // Centered Title
       if (isFirstParagraph && p.toLowerCase().startsWith("title:")) {
         const titleText = p.replace(/^title:\s*/i, "").trim();
         const titleFontSize = 16;
@@ -108,6 +112,7 @@ export async function POST(req: Request) {
         continue;
       }
 
+      // Centered Author
       if (p.toLowerCase().startsWith("author:")) {
         const authorText = p.replace(/^author:\s*/i, "").trim();
         const authorFontSize = 12;
@@ -122,18 +127,21 @@ export async function POST(req: Request) {
           size: authorFontSize,
           color: rgb(0.1, 0.1, 0.1),
         });
-        y -= authorFontSize + 14;
+        y -= authorFontSize + sectionGap;
         continue;
       }
 
+      // Section Headers
       const isHeader = sectionHeaders.some((h) =>
         p.toLowerCase().startsWith(h.toLowerCase() + ":")
       );
-
       if (isHeader) {
         const split = p.split(":");
         const header = split[0].trim();
         const content = split.slice(1).join(":").trim();
+
+        // Add section gap before header
+        y -= sectionGap;
 
         page.drawText(`${header}:`, {
           x: margin,
@@ -142,7 +150,8 @@ export async function POST(req: Request) {
           size: fontSize + 1,
           color: rgb(0, 0, 0),
         });
-        y -= headingSpacing + fontSize;
+
+        y -= headingToContentGap;
 
         const lines = wrapText(content, maxTextWidth, font, fontSize);
         for (const line of lines) {
@@ -161,10 +170,11 @@ export async function POST(req: Request) {
           y -= lineSpacing;
         }
 
-        y -= paragraphSpacing;
+        y -= paragraphGap;
         continue;
       }
 
+      // Regular Paragraphs
       const lines = wrapText(p, maxTextWidth, font, fontSize);
       for (const line of lines) {
         if (y < margin + lineSpacing) {
@@ -182,7 +192,7 @@ export async function POST(req: Request) {
         y -= lineSpacing;
       }
 
-      y -= paragraphSpacing;
+      y -= paragraphGap;
     }
 
     const pdfBytes = await pdfDoc.save();
