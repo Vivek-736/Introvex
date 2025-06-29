@@ -149,7 +149,6 @@ export async function POST(req: Request) {
         const contentLines = wrapText(content, maxTextWidth, font, fontSize);
         const contentHeight = contentLines.length * lineSpacing;
 
-        // Check space before drawing
         if (y < margin + headerHeight + contentHeight) {
           page = pdfDoc.addPage([width, height]);
           y = height - margin;
