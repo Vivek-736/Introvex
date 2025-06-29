@@ -7,12 +7,12 @@ export const config = {
 
 function sanitizeMarkdown(md: string): string[] {
   return md
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/^```.*$/gm, "") 
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1") 
-    .replace(/_(.*?)_/g, "$1") 
-    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/```[\s\S]*?```/g, "") // Remove code blocks
+    .replace(/^```.*$/gm, "") // Remove lines with ```
+    .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold markdown
+    .replace(/\*(.*?)\*/g, "$1") // Remove italic markdown
+    .replace(/_(.*?)_/g, "$1") // Remove underscore italic markdown
+    .replace(/^#{1,6}\s*/gm, "") // Remove heading hashes
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
@@ -81,9 +81,11 @@ export async function POST(req: Request) {
     let isFirstParagraph = true;
 
     for (const p of contentLines) {
-      if (isFirstParagraph) {
+      // Title line: starts with "Title:"
+      if (isFirstParagraph && p.toLowerCase().startsWith("title:")) {
+        const titleText = p.replace(/^title:\s*/i, "").trim();
         const titleFontSize = 16;
-        const titleLines = wrapText(p, maxTextWidth, bold, titleFontSize);
+        const titleLines = wrapText(titleText, maxTextWidth, bold, titleFontSize);
         for (const line of titleLines) {
           const textWidth = bold.widthOfTextAtSize(line, titleFontSize);
           page.drawText(line, {
@@ -100,10 +102,12 @@ export async function POST(req: Request) {
         continue;
       }
 
+      // Author line
       if (p.toLowerCase().startsWith("author:")) {
+        const authorText = p.replace(/^author:\s*/i, "").trim();
         const authorFontSize = 12;
-        const authorWidth = bold.widthOfTextAtSize(p, authorFontSize);
-        page.drawText(p, {
+        const authorWidth = bold.widthOfTextAtSize(`Author: ${authorText}`, authorFontSize);
+        page.drawText(`Author: ${authorText}`, {
           x: (width - authorWidth) / 2,
           y,
           font: bold,
@@ -115,21 +119,46 @@ export async function POST(req: Request) {
       }
 
       const isHeader = sectionHeaders.some(
-        (h) => p.toLowerCase() === h.toLowerCase()
+        (h) => p.toLowerCase().startsWith(h.toLowerCase() + ":")
       );
+
       if (isHeader) {
+        const split = p.split(":");
+        const header = split[0].trim();
+        const content = split.slice(1).join(":").trim();
+
         y -= 4;
-        page.drawText(p, {
+        page.drawText(header + ":", {
           x: margin,
           y,
           font: bold,
           size: fontSize + 1,
           color: rgb(0, 0, 0),
         });
-        y -= lineSpacing + 2;
+        y -= lineSpacing;
+
+        const lines = wrapText(content, maxTextWidth, font, fontSize);
+        for (const line of lines) {
+          if (y < margin + lineSpacing) {
+            page = pdfDoc.addPage([width, height]);
+            y = height - margin;
+          }
+
+          page.drawText(line, {
+            x: margin,
+            y,
+            font,
+            size: fontSize,
+            color: rgb(0, 0, 0),
+          });
+          y -= lineSpacing;
+        }
+
+        y -= 6;
         continue;
       }
 
+      // Normal paragraph
       const lines = wrapText(p, maxTextWidth, font, fontSize);
       for (const line of lines) {
         if (y < margin + lineSpacing) {
