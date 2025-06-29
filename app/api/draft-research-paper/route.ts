@@ -48,23 +48,32 @@ export async function POST(request: Request) {
     // console.log("Full context for Gemini:", context);
 
     const prompt = `
-      You are an expert research assistant tasked with drafting a comprehensive research paper based on the provided conversation context. The paper must meet the following requirements:
-      - **Title**: Create a clear and relevant title based on the main topic discussed in the context.
-      - **Author**: Use "${userName}" as the author of the paper.
-      - **Length**: Generate content for at least 4 pages (approximately 1000-1200 words, assuming 250-300 words per page).
-      - **Structure**: Include the following sections:
-        - **Abstract**: A concise summary (150-200 words) of the paper's purpose, methods, and findings.
-        - **Introduction**: Introduce the topic, its significance, and the paper's objectives.
-        - **Literature Review**: Summarize relevant research or discussions from the context, citing any mentioned sources or ideas.
-        - **Methodology**: Describe a hypothetical or relevant research approach based on the context.
-        - **Discussion**: Analyze the topic, incorporating insights from the context.
+        You are an expert research assistant tasked with drafting a comprehensive research paper **immediately** and **only** outputting the paper content itself — without any additional commentary like "Here's the draft..." or markdown formatting (e.g., no triple backticks or \`\`\`markdown).
+
+        Please generate a **complete research paper** that follows this structure:
+
+        - **Title**: Create a clear and relevant title based on the main topic discussed in the context.
+        - **Author**: Use "${userName}" as the author of the paper.
+        - **Abstract**: A concise summary (150–200 words) of the paper's purpose, methods, and findings.
+        - **Introduction**: Introduce the topic, its significance, and the objectives.
+        - **Literature Review**: Summarize relevant research or ideas from the context.
+        - **Methodology**: Describe a hypothetical or relevant research approach.
+        - **Discussion**: Analyze the topic, incorporating insights from the conversation.
         - **Conclusion**: Summarize key points and suggest future research directions.
-        - **References**: List any references mentioned in the context or inferred as relevant (in APA format).
-      - **Tone and Style**: Use a formal, academic tone suitable for a research paper.
-      - **Formatting**: Structure the content clearly with section headings. If code or technical details are mentioned in the context, include them appropriately (e.g., in a methodology or appendix).
-      - **Context**: Here is the conversation context to base the paper on:\n\n${context}\n\n
-      Draft the complete research paper, ensuring all sections are well-developed and the content is cohesive and relevant to the context provided.
-    `;
+        - **References**: Add references in APA format.
+
+        **Requirements**:
+        - Do NOT include \`\`\`, markdown syntax, or any formatting instructions.
+        - Do NOT say “Sure, here’s the paper” or anything conversational.
+        - Output ONLY the research paper content.
+        - Use a formal academic tone throughout.
+        - Minimum length: ~1000–1200 words.
+
+        Here is the full conversation context to base the paper on:
+
+        ${context}
+
+      Draft the paper now based on the above.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBUjsjCQomz4PRKpNs1PZUq3emp_V7Y-nw`,
@@ -130,7 +139,7 @@ export async function POST(request: Request) {
     }
 
     // console.log("Stored research paper in Supabase:", updateData);
-    
+
     return NextResponse.json({ success: true, researchPaper });
   } catch (error) {
     console.error("Error in draft-research-paper route:", error);
@@ -138,9 +147,6 @@ export async function POST(request: Request) {
       typeof error === "object" && error !== null && "message" in error
         ? (error as { message?: string }).message
         : "Internal server error";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
