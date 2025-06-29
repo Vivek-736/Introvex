@@ -7,12 +7,12 @@ export const config = {
 
 function sanitizeMarkdown(md: string): string[] {
   return md
-    .replace(/```[\s\S]*?```/g, "") // remove code blocks
-    .replace(/^```.*$/gm, "") // remove ``` lines
-    .replace(/\*\*(.*?)\*\*/g, "$1") // remove bold markdown
-    .replace(/\*(.*?)\*/g, "$1") // remove italic markdown
-    .replace(/_(.*?)_/g, "$1") // remove underscore emphasis
-    .replace(/^#{1,6}\s*/gm, "") // remove markdown headers
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/^```.*$/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/_(.*?)_/g, "$1")
+    .replace(/^#{1,6}\s*/gm, "")
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
     const contentLines = sanitizeMarkdown(markdown);
     const pdfDoc = await PDFDocument.create();
-    let page = pdfDoc.addPage([595.28, 841.89]); // A4
+    let page = pdfDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -143,6 +143,7 @@ export async function POST(req: Request) {
       }
 
       const lines = wrapText(p, maxTextWidth, font, fontSize);
+      
       for (const line of lines) {
         if (y < margin + lineSpacing) {
           page = pdfDoc.addPage([width, height]);
