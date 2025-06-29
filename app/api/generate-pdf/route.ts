@@ -7,12 +7,12 @@ export const config = {
 
 function sanitizeMarkdown(md: string): string[] {
   return md
-    .replace(/```[\s\S]*?```/g, "") // Remove code blocks
-    .replace(/^```.*$/gm, "") // Remove lines with ```
-    .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold markdown
-    .replace(/\*(.*?)\*/g, "$1") // Remove italic markdown
-    .replace(/_(.*?)_/g, "$1") // Remove underscore italic markdown
-    .replace(/^#{1,6}\s*/gm, "") // Remove heading hashes
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/^```.*$/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/_(.*?)_/g, "$1")
+    .replace(/^#{1,6}\s*/gm, "")
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
@@ -81,11 +81,15 @@ export async function POST(req: Request) {
     let isFirstParagraph = true;
 
     for (const p of contentLines) {
-      // Title line: starts with "Title:"
       if (isFirstParagraph && p.toLowerCase().startsWith("title:")) {
         const titleText = p.replace(/^title:\s*/i, "").trim();
         const titleFontSize = 16;
-        const titleLines = wrapText(titleText, maxTextWidth, bold, titleFontSize);
+        const titleLines = wrapText(
+          titleText,
+          maxTextWidth,
+          bold,
+          titleFontSize
+        );
         for (const line of titleLines) {
           const textWidth = bold.widthOfTextAtSize(line, titleFontSize);
           page.drawText(line, {
@@ -102,11 +106,13 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Author line
       if (p.toLowerCase().startsWith("author:")) {
         const authorText = p.replace(/^author:\s*/i, "").trim();
         const authorFontSize = 12;
-        const authorWidth = bold.widthOfTextAtSize(`Author: ${authorText}`, authorFontSize);
+        const authorWidth = bold.widthOfTextAtSize(
+          `Author: ${authorText}`,
+          authorFontSize
+        );
         page.drawText(`Author: ${authorText}`, {
           x: (width - authorWidth) / 2,
           y,
@@ -118,8 +124,8 @@ export async function POST(req: Request) {
         continue;
       }
 
-      const isHeader = sectionHeaders.some(
-        (h) => p.toLowerCase().startsWith(h.toLowerCase() + ":")
+      const isHeader = sectionHeaders.some((h) =>
+        p.toLowerCase().startsWith(h.toLowerCase() + ":")
       );
 
       if (isHeader) {
@@ -158,7 +164,6 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Normal paragraph
       const lines = wrapText(p, maxTextWidth, font, fontSize);
       for (const line of lines) {
         if (y < margin + lineSpacing) {
