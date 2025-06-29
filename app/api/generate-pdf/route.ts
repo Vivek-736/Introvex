@@ -5,7 +5,25 @@ export const config = {
   runtime: "nodejs",
 };
 
-function wrapText(text: string, maxWidth: number, font: any, fontSize: number): string[] {
+function sanitizeMarkdown(md: string): string[] {
+  return md
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/^```.*$/gm, "") 
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1") 
+    .replace(/_(.*?)_/g, "$1") 
+    .replace(/^#{1,6}\s*/gm, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function wrapText(
+  text: string,
+  maxWidth: number,
+  font: any,
+  fontSize: number
+): string[] {
   const words = text.split(" ");
   const lines = [];
   let line = "";
@@ -24,16 +42,6 @@ function wrapText(text: string, maxWidth: number, font: any, fontSize: number): 
   return lines;
 }
 
-function sanitizeMarkdown(md: string): string[] {
-  return md
-    .replace(/\*\*(.*?)\*\*/g, '$1') // remove bold markdown
-    .replace(/\*(.*?)\*/g, '$1')      // remove italics *
-    .replace(/_(.*?)_/g, '$1')        // remove italics _
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-}
-
 export async function POST(req: Request) {
   try {
     const { latex: markdown, chatId } = await req.json();
@@ -41,8 +49,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
+    const contentLines = sanitizeMarkdown(markdown);
     const pdfDoc = await PDFDocument.create();
-    let page = pdfDoc.addPage([595.28, 841.89]); // A4
+    let page = pdfDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -54,23 +63,27 @@ export async function POST(req: Request) {
     const maxTextWidth = width - margin * 2;
     let y = height - margin;
 
-    const lines = sanitizeMarkdown(markdown);
-
-    let isFirstLine = true;
-
     const sectionHeaders = [
-      "Abstract", "Introduction", "Literature Review", "Methodology", "Discussion", "Conclusion",
-      "References", "Participants", "Measures", "Procedure", "Data Analysis", "Ethical Considerations"
+      "Abstract",
+      "Introduction",
+      "Literature Review",
+      "Methodology",
+      "Discussion",
+      "Conclusion",
+      "References",
+      "Participants",
+      "Measures",
+      "Procedure",
+      "Data Analysis",
+      "Ethical Considerations",
     ];
 
-    for (let line of lines) {
-      // Remove heading markdown
-      const cleanLine = line.replace(/^#+\s*/, "").trim();
+    let isFirstParagraph = true;
 
-      // Title
-      if (isFirstLine) {
-        const titleFontSize = 18;
-        const titleLines = wrapText(cleanLine, maxTextWidth, bold, titleFontSize);
+    for (const p of contentLines) {
+      if (isFirstParagraph) {
+        const titleFontSize = 16;
+        const titleLines = wrapText(p, maxTextWidth, bold, titleFontSize);
         for (const line of titleLines) {
           const textWidth = bold.widthOfTextAtSize(line, titleFontSize);
           page.drawText(line, {
@@ -80,18 +93,17 @@ export async function POST(req: Request) {
             size: titleFontSize,
             color: rgb(0, 0, 0),
           });
-          y -= titleFontSize + 4;
+          y -= titleFontSize + 2;
         }
         y -= 10;
-        isFirstLine = false;
+        isFirstParagraph = false;
         continue;
       }
 
-      // Author line
-      if (cleanLine.toLowerCase().startsWith("author:")) {
+      if (p.toLowerCase().startsWith("author:")) {
         const authorFontSize = 12;
-        const authorWidth = bold.widthOfTextAtSize(cleanLine, authorFontSize);
-        page.drawText(cleanLine, {
+        const authorWidth = bold.widthOfTextAtSize(p, authorFontSize);
+        page.drawText(p, {
           x: (width - authorWidth) / 2,
           y,
           font: bold,
@@ -102,27 +114,24 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Section header
       const isHeader = sectionHeaders.some(
-        (header) => cleanLine.toLowerCase() === header.toLowerCase()
+        (h) => p.toLowerCase() === h.toLowerCase()
       );
-
       if (isHeader) {
         y -= 4;
-        page.drawText(cleanLine, {
+        page.drawText(p, {
           x: margin,
           y,
           font: bold,
-          size: fontSize + 2,
+          size: fontSize + 1,
           color: rgb(0, 0, 0),
         });
-        y -= lineSpacing;
+        y -= lineSpacing + 2;
         continue;
       }
 
-      // Paragraph
-      const wrappedLines = wrapText(cleanLine, maxTextWidth, font, fontSize);
-      for (const line of wrappedLines) {
+      const lines = wrapText(p, maxTextWidth, font, fontSize);
+      for (const line of lines) {
         if (y < margin + lineSpacing) {
           page = pdfDoc.addPage([width, height]);
           y = height - margin;
@@ -135,7 +144,6 @@ export async function POST(req: Request) {
           size: fontSize,
           color: rgb(0, 0, 0),
         });
-
         y -= lineSpacing;
       }
 
