@@ -5,6 +5,7 @@ import { supabase } from "@/services/SupabaseClient";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import ResearchLoader from "@/components/ResearchLoader";
+import { Download } from "lucide-react";
 
 const ResearchPage = () => {
   const { id } = useParams();
@@ -43,6 +44,7 @@ const ResearchPage = () => {
         setLoading(false);
       }
     };
+
     fetchAndGeneratePDF();
   }, [chatId]);
 
@@ -74,9 +76,9 @@ const ResearchPage = () => {
 
           <button
             onClick={handleDownload}
-            className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-xl transition"
+            className="bg-purple-600 flex gap-2 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-xl transition"
           >
-            ⬇️ Download PDF
+            <Download className="text-white w-6 h-6" /> Download PDF
           </button>
         </>
       ) : (
