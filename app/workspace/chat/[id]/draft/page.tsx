@@ -60,15 +60,17 @@ const DraftPage = () => {
 
         const processedMessages: Message[] = [];
 
-        // Process messages from the 'message' column first
         if (data && data.message) {
           const messageString = data.message;
           const allMessages = messageString.split(",,,,");
           for (let i = 0; i < allMessages.length; i += 2) {
-            const userText =
-              allMessages[i]?.trim().replace(/^User: /, "") || "";
-            const botText =
-              allMessages[i + 1]?.trim().replace(/^Assistant: /, "") || "";
+            const userText = allMessages[i]?.trim().replace(/^User: /, "") || "";
+            const botText = allMessages[i + 1]?.trim().replace(/^Assistant: /, "") || "";
+
+            if (userText) {
+              processedMessages.push({ sender: "user", text: userText });
+              messageSetRef.current.add(`User: ${userText}`);
+            }
 
             if (botText) {
               const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -83,9 +85,7 @@ const DraftPage = () => {
                     sender: "bot",
                     text: cleanText(beforeText),
                   });
-                  messageSetRef.current.add(
-                    `Assistant: ${cleanText(beforeText)}`
-                  );
+                  messageSetRef.current.add(`Assistant: ${cleanText(beforeText)}`);
                 }
                 processedMessages.push({
                   sender: "bot",
@@ -93,9 +93,7 @@ const DraftPage = () => {
                   language: language || "plaintext",
                 });
                 messageSetRef.current.add(
-                  `Assistant: \`\`\`${
-                    language || "plaintext"
-                  }\n${code.trim()}\`\`\``
+                  `Assistant: \`\`\`${language || "plaintext"}\n${code.trim()}\`\`\``
                 );
                 lastIndex = match.index + fullMatch.length;
               }
@@ -106,19 +104,12 @@ const DraftPage = () => {
                   sender: "bot",
                   text: cleanText(remainingText),
                 });
-                messageSetRef.current.add(
-                  `Assistant: ${cleanText(remainingText)}`
-                );
+                messageSetRef.current.add(`Assistant: ${cleanText(remainingText)}`);
               }
-            }
-            if (userText) {
-              processedMessages.push({ sender: "user", text: userText });
-              messageSetRef.current.add(`User: ${userText}`);
             }
           }
         }
 
-        // Then process messages from the 'vapi_chat' column
         if (data && data.vapi_chat) {
           const vapiChat = data.vapi_chat;
           vapiChat.forEach((msg: { Assistant: string; user: string }) => {
@@ -129,18 +120,13 @@ const DraftPage = () => {
 
               while ((match = codeBlockRegex.exec(msg.Assistant))) {
                 const [fullMatch, language, code] = match;
-                const beforeText = msg.Assistant.slice(
-                  lastIndex,
-                  match.index
-                ).trim();
+                const beforeText = msg.Assistant.slice(lastIndex, match.index).trim();
                 if (beforeText) {
                   processedMessages.push({
                     sender: "bot",
                     text: cleanText(beforeText),
                   });
-                  messageSetRef.current.add(
-                    `Assistant: ${cleanText(beforeText)}`
-                  );
+                  messageSetRef.current.add(`Assistant: ${cleanText(beforeText)}`);
                 }
                 processedMessages.push({
                   sender: "bot",
@@ -148,9 +134,7 @@ const DraftPage = () => {
                   language: language || "plaintext",
                 });
                 messageSetRef.current.add(
-                  `Assistant: \`\`\`${
-                    language || "plaintext"
-                  }\n${code.trim()}\`\`\``
+                  `Assistant: \`\`\`${language || "plaintext"}\n${code.trim()}\`\`\``
                 );
                 lastIndex = match.index + fullMatch.length;
               }
@@ -161,9 +145,7 @@ const DraftPage = () => {
                   sender: "bot",
                   text: cleanText(remainingText),
                 });
-                messageSetRef.current.add(
-                  `Assistant: ${cleanText(remainingText)}`
-                );
+                messageSetRef.current.add(`Assistant: ${cleanText(remainingText)}`);
               }
             }
             if (msg.user) {
@@ -186,8 +168,7 @@ const DraftPage = () => {
 
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -195,9 +176,7 @@ const DraftPage = () => {
     Prism.highlightAll();
   }, [messages]);
 
-  const updateSupabaseWithMessage = async (
-    newMessages: { Assistant: string; user: string }[]
-  ) => {
+  const updateSupabaseWithMessage = async (newMessages: { Assistant: string; user: string }[]) => {
     if (!chatId || !newMessages.length) return;
 
     try {
@@ -246,10 +225,7 @@ const DraftPage = () => {
         .select();
 
       if (updateError) {
-        console.error(
-          "Error updating Supabase with messages:",
-          updateError.message
-        );
+        console.error("Error updating Supabase with messages:", updateError.message);
         toast.error("Failed to save conversation.");
         return;
       }
@@ -293,17 +269,12 @@ const DraftPage = () => {
 
           const newMessages: Message[] = [];
           const supabaseMessages: { Assistant: string; user: string }[] = [];
-          let currentPair: { Assistant: string; user: string } = {
-            Assistant: "",
-            user: "",
-          };
+          let currentPair: { Assistant: string; user: string } = { Assistant: "", user: "" };
 
           message.conversation
             .filter((msg: any) => msg.role !== "system")
             .forEach((msg: any) => {
-              const messageKey = `${
-                msg.role === "user" ? "User" : "Assistant"
-              }: ${msg.content.trim()}`;
+              const messageKey = `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content.trim()}`;
               if (!messageSetRef.current.has(messageKey)) {
                 messageSetRef.current.add(messageKey);
 
@@ -322,14 +293,10 @@ const DraftPage = () => {
                       text: cleanText(beforeText),
                     });
                     messageSetRef.current.add(
-                      `${sender === "user" ? "User" : "Assistant"}: ${cleanText(
-                        beforeText
-                      )}`
+                      `${sender === "user" ? "User" : "Assistant"}: ${cleanText(beforeText)}`
                     );
                     if (sender === "bot") {
-                      currentPair.Assistant += beforeText
-                        ? `${cleanText(beforeText)}\n`
-                        : "";
+                      currentPair.Assistant += beforeText ? `${cleanText(beforeText)}\n` : "";
                     } else {
                       currentPair.user += beforeText ? `${beforeText}\n` : "";
                     }
@@ -340,18 +307,12 @@ const DraftPage = () => {
                     language: language || "plaintext",
                   });
                   messageSetRef.current.add(
-                    `${sender === "user" ? "User" : "Assistant"}: \`\`\`${
-                      language || "plaintext"
-                    }\n${code.trim()}\`\`\``
+                    `${sender === "user" ? "User" : "Assistant"}: \`\`\`${language || "plaintext"}\n${code.trim()}\`\`\``
                   );
                   if (sender === "bot") {
-                    currentPair.Assistant += `\`\`\`${
-                      language || "plaintext"
-                    }\n${code.trim()}\`\`\`\n`;
+                    currentPair.Assistant += `\`\`\`${language || "plaintext"}\n${code.trim()}\`\`\`\n`;
                   } else {
-                    currentPair.user += `\`\`\`${
-                      language || "plaintext"
-                    }\n${code.trim()}\`\`\`\n`;
+                    currentPair.user += `\`\`\`${language || "plaintext"}\n${code.trim()}\`\`\`\n`;
                   }
                   lastIndex = match.index + fullMatch.length;
                 }
@@ -363,9 +324,7 @@ const DraftPage = () => {
                     text: cleanText(remainingText),
                   });
                   messageSetRef.current.add(
-                    `${sender === "user" ? "User" : "Assistant"}: ${cleanText(
-                      remainingText
-                    )}`
+                    `${sender === "user" ? "User" : "Assistant"}: ${cleanText(remainingText)}`
                   );
                   if (sender === "bot") {
                     currentPair.Assistant += cleanText(remainingText);
@@ -381,7 +340,6 @@ const DraftPage = () => {
               }
             });
 
-          // Push any remaining pair
           if (currentPair.Assistant || currentPair.user) {
             supabaseMessages.push(currentPair);
           }
