@@ -4,7 +4,7 @@ import { supabase } from "@/services/SupabaseClient";
 export async function POST(request: Request) {
   try {
     const { chatId, userName } = await request.json();
-    console.log("Received request for research paper:", { chatId, userName });
+    // console.log("Received request for research paper:", { chatId, userName });
 
     if (!chatId) {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (fetchError) {
-      console.error("Error fetching chat data:", fetchError.message);
+      // console.error("Error fetching chat data:", fetchError.message);
       return NextResponse.json(
         { error: `Failed to fetch chat data: ${fetchError.message}` },
         { status: 500 }
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       });
     }
     context = context.trim();
-    console.log("Full context for Gemini:", context);
+    // console.log("Full context for Gemini:", context);
 
     const prompt = `
       You are an expert research assistant tasked with drafting a comprehensive research paper based on the provided conversation context. The paper must meet the following requirements:
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("Stored research paper in Supabase:", updateData);
+    // console.log("Stored research paper in Supabase:", updateData);
     
     return NextResponse.json({ success: true, researchPaper });
   } catch (error) {
