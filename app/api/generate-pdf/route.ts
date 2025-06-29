@@ -59,9 +59,9 @@ export async function POST(req: Request) {
 
     const fontSize = 12;
     const lineSpacing = fontSize + 4;
-    const sectionGap = 20; // large gap before section heading
-    const headingToContentGap = 6; // small gap between heading and its first line
-    const paragraphGap = 10; // between content blocks
+    const sectionGap = 20;
+    const headingToContentGap = 6;
+    const paragraphGap = 10;
     const margin = 50;
     const maxTextWidth = width - margin * 2;
     let y = height - margin;
@@ -86,7 +86,6 @@ export async function POST(req: Request) {
     for (let i = 0; i < contentLines.length; i++) {
       const p = contentLines[i];
 
-      // Centered Title
       if (isFirstParagraph && p.toLowerCase().startsWith("title:")) {
         const titleText = p.replace(/^title:\s*/i, "").trim();
         const titleFontSize = 16;
@@ -112,7 +111,6 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Centered Author
       if (p.toLowerCase().startsWith("author:")) {
         const authorText = p.replace(/^author:\s*/i, "").trim();
         const authorFontSize = 12;
@@ -131,7 +129,6 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Section Headers
       const isHeader = sectionHeaders.some((h) =>
         p.toLowerCase().startsWith(h.toLowerCase() + ":")
       );
@@ -140,7 +137,6 @@ export async function POST(req: Request) {
         const header = split[0].trim();
         const content = split.slice(1).join(":").trim();
 
-        // Add section gap before header
         y -= sectionGap;
 
         page.drawText(`${header}:`, {
@@ -174,7 +170,6 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Regular Paragraphs
       const lines = wrapText(p, maxTextWidth, font, fontSize);
       for (const line of lines) {
         if (y < margin + lineSpacing) {
