@@ -59,12 +59,11 @@ export async function POST(req: Request) {
 
     const fontSize = 12;
     const lineSpacing = fontSize + 4;
+    const sectionGap = 20;
+    const headingToContentGap = 6;
+    const paragraphGap = 10;
     const margin = 50;
     const maxTextWidth = width - margin * 2;
-    const sectionGap = 24;
-    const headingToContentGap = 10;
-    const paragraphGap = 10;
-
     let y = height - margin;
 
     const sectionHeaders = [
@@ -84,12 +83,24 @@ export async function POST(req: Request) {
 
     let isFirstParagraph = true;
 
-    for (const p of contentLines) {
-      if (isFirstParagraph) {
+    for (let i = 0; i < contentLines.length; i++) {
+      const p = contentLines[i];
+
+      if (isFirstParagraph && p.toLowerCase().startsWith("title:")) {
+        const titleText = p.replace(/^title:\s*/i, "").trim();
         const titleFontSize = 16;
-        const titleLines = wrapText(p, maxTextWidth, bold, titleFontSize);
+        const titleLines = wrapText(
+          titleText,
+          maxTextWidth,
+          bold,
+          titleFontSize
+        );
         for (const line of titleLines) {
           const textWidth = bold.widthOfTextAtSize(line, titleFontSize);
+          if (y < margin + titleFontSize + 5) {
+            page = pdfDoc.addPage([width, height]);
+            y = height - margin;
+          }
           page.drawText(line, {
             x: (width - textWidth) / 2,
             y,
@@ -105,32 +116,47 @@ export async function POST(req: Request) {
       }
 
       if (p.toLowerCase().startsWith("author:")) {
+        const authorText = p.replace(/^author:\s*/i, "").trim();
         const authorFontSize = 12;
-        const authorWidth = bold.widthOfTextAtSize(p, authorFontSize);
-        page.drawText(p, {
+        const authorStr = `Author: ${authorText}`;
+        const authorWidth = bold.widthOfTextAtSize(authorStr, authorFontSize);
+
+        if (y < margin + authorFontSize + sectionGap) {
+          page = pdfDoc.addPage([width, height]);
+          y = height - margin;
+        }
+
+        page.drawText(authorStr, {
           x: (width - authorWidth) / 2,
           y,
           font: bold,
           size: authorFontSize,
           color: rgb(0.1, 0.1, 0.1),
         });
-        y -= authorFontSize + 16;
+        y -= authorFontSize + sectionGap;
         continue;
       }
 
-      const isHeader = sectionHeaders.some(
-        (h) => p.toLowerCase() === h.toLowerCase()
+      const isHeader = sectionHeaders.some((h) =>
+        p.toLowerCase().startsWith(h.toLowerCase() + ":")
       );
-
       if (isHeader) {
-        if (y < margin + lineSpacing + sectionGap + headingToContentGap) {
+        const split = p.split(":");
+        const header = split[0].trim();
+        const content = split.slice(1).join(":").trim();
+
+        const headerHeight = fontSize + 1 + headingToContentGap;
+        const contentLines = wrapText(content, maxTextWidth, font, fontSize);
+        const contentHeight = contentLines.length * lineSpacing;
+
+        // Check space before drawing
+        if (y < margin + headerHeight + contentHeight) {
           page = pdfDoc.addPage([width, height]);
           y = height - margin;
         }
 
         y -= sectionGap;
-
-        page.drawText(`${p}:`, {
+        page.drawText(`${header}:`, {
           x: margin,
           y,
           font: bold,
@@ -139,17 +165,36 @@ export async function POST(req: Request) {
         });
 
         y -= headingToContentGap;
+
+        for (const line of contentLines) {
+          if (y < margin + lineSpacing) {
+            page = pdfDoc.addPage([width, height]);
+            y = height - margin;
+          }
+
+          page.drawText(line, {
+            x: margin,
+            y,
+            font,
+            size: fontSize,
+            color: rgb(0, 0, 0),
+          });
+          y -= lineSpacing;
+        }
+
+        y -= paragraphGap;
         continue;
       }
 
       const lines = wrapText(p, maxTextWidth, font, fontSize);
-      
-      for (const line of lines) {
-        if (y < margin + lineSpacing) {
-          page = pdfDoc.addPage([width, height]);
-          y = height - margin;
-        }
+      const blockHeight = lines.length * lineSpacing;
 
+      if (y < margin + blockHeight) {
+        page = pdfDoc.addPage([width, height]);
+        y = height - margin;
+      }
+
+      for (const line of lines) {
         page.drawText(line, {
           x: margin,
           y,
@@ -157,7 +202,6 @@ export async function POST(req: Request) {
           size: fontSize,
           color: rgb(0, 0, 0),
         });
-
         y -= lineSpacing;
       }
 
