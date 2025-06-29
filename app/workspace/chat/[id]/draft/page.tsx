@@ -48,7 +48,7 @@ const DraftPage = () => {
       try {
         const { data, error } = await supabase
           .from("Data")
-          .select("message")
+          .select("message, vapi_chat")
           .eq("chatId", chatId)
           .maybeSingle();
 
@@ -58,21 +58,18 @@ const DraftPage = () => {
           return;
         }
 
+        const processedMessages: Message[] = [];
+
+        // Process messages from the 'message' column first
         if (data && data.message) {
           const messageString = data.message;
           const allMessages = messageString.split(",,,,");
-          const processedMessages: Message[] = [];
-
           for (let i = 0; i < allMessages.length; i += 2) {
             const userText =
               allMessages[i]?.trim().replace(/^User: /, "") || "";
             const botText =
               allMessages[i + 1]?.trim().replace(/^Assistant: /, "") || "";
 
-            if (userText) {
-              processedMessages.push({ sender: "user", text: userText });
-              messageSetRef.current.add(`User: ${userText}`);
-            }
             if (botText) {
               const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
               let lastIndex = 0;
@@ -114,9 +111,69 @@ const DraftPage = () => {
                 );
               }
             }
+            if (userText) {
+              processedMessages.push({ sender: "user", text: userText });
+              messageSetRef.current.add(`User: ${userText}`);
+            }
           }
-          setMessages(processedMessages);
         }
+
+        // Then process messages from the 'vapi_chat' column
+        if (data && data.vapi_chat) {
+          const vapiChat = data.vapi_chat;
+          vapiChat.forEach((msg: { Assistant: string; user: string }) => {
+            if (msg.Assistant) {
+              const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+              let lastIndex = 0;
+              let match;
+
+              while ((match = codeBlockRegex.exec(msg.Assistant))) {
+                const [fullMatch, language, code] = match;
+                const beforeText = msg.Assistant.slice(
+                  lastIndex,
+                  match.index
+                ).trim();
+                if (beforeText) {
+                  processedMessages.push({
+                    sender: "bot",
+                    text: cleanText(beforeText),
+                  });
+                  messageSetRef.current.add(
+                    `Assistant: ${cleanText(beforeText)}`
+                  );
+                }
+                processedMessages.push({
+                  sender: "bot",
+                  text: code.trim(),
+                  language: language || "plaintext",
+                });
+                messageSetRef.current.add(
+                  `Assistant: \`\`\`${
+                    language || "plaintext"
+                  }\n${code.trim()}\`\`\``
+                );
+                lastIndex = match.index + fullMatch.length;
+              }
+
+              const remainingText = msg.Assistant.slice(lastIndex).trim();
+              if (remainingText) {
+                processedMessages.push({
+                  sender: "bot",
+                  text: cleanText(remainingText),
+                });
+                messageSetRef.current.add(
+                  `Assistant: ${cleanText(remainingText)}`
+                );
+              }
+            }
+            if (msg.user) {
+              processedMessages.push({ sender: "user", text: msg.user });
+              messageSetRef.current.add(`User: ${msg.user}`);
+            }
+          });
+        }
+
+        setMessages(processedMessages);
       } catch (error) {
         console.error("Error in fetchChatData:", error);
         toast.error("Failed to load chat data.");
@@ -138,13 +195,15 @@ const DraftPage = () => {
     Prism.highlightAll();
   }, [messages]);
 
-  const updateSupabaseWithMessage = async (newMessages: string[]) => {
+  const updateSupabaseWithMessage = async (
+    newMessages: { Assistant: string; user: string }[]
+  ) => {
     if (!chatId || !newMessages.length) return;
 
     try {
       const { data: currentData, error: fetchError } = await supabase
         .from("Data")
-        .select("message")
+        .select("vapi_chat")
         .eq("chatId", chatId)
         .maybeSingle();
 
@@ -154,13 +213,14 @@ const DraftPage = () => {
         return;
       }
 
-      const currentMessage = currentData?.message || "";
-      const existingMessages = currentMessage
-        ? currentMessage.split(",,,,").map((msg: any) => msg.trim())
-        : [];
-
+      const existingMessages = currentData?.vapi_chat || [];
       const uniqueNewMessages = newMessages.filter(
-        (msg) => !existingMessages.includes(msg.trim())
+        (newMsg) =>
+          !existingMessages.some(
+            (existingMsg: any) =>
+              existingMsg.user === newMsg.user &&
+              existingMsg.Assistant === newMsg.Assistant
+          )
       );
 
       if (uniqueNewMessages.length === 0) {
@@ -168,17 +228,21 @@ const DraftPage = () => {
         return;
       }
 
-      const updatedMessage = [...existingMessages, ...uniqueNewMessages].join(
-        ",,,,"
-      );
+      const updatedMessages = [...existingMessages, ...uniqueNewMessages];
 
       const { data: updateData, error: updateError } = await supabase
         .from("Data")
-        .upsert({
-          chatId,
-          message: updatedMessage,
-          created_at: new Date().toISOString(),
-        })
+        .upsert(
+          {
+            chatId,
+            vapi_chat: updatedMessages,
+            created_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "chatId",
+            ignoreDuplicates: false,
+          }
+        )
         .select();
 
       if (updateError) {
@@ -228,7 +292,11 @@ const DraftPage = () => {
           vapiConversationRef.current = message.conversation;
 
           const newMessages: Message[] = [];
-          const supabaseMessages: string[] = [];
+          const supabaseMessages: { Assistant: string; user: string }[] = [];
+          let currentPair: { Assistant: string; user: string } = {
+            Assistant: "",
+            user: "",
+          };
 
           message.conversation
             .filter((msg: any) => msg.role !== "system")
@@ -238,7 +306,6 @@ const DraftPage = () => {
               }: ${msg.content.trim()}`;
               if (!messageSetRef.current.has(messageKey)) {
                 messageSetRef.current.add(messageKey);
-                supabaseMessages.push(messageKey);
 
                 const sender = msg.role === "user" ? "user" : "bot";
                 const text = msg.content.trim();
@@ -259,6 +326,13 @@ const DraftPage = () => {
                         beforeText
                       )}`
                     );
+                    if (sender === "bot") {
+                      currentPair.Assistant += beforeText
+                        ? `${cleanText(beforeText)}\n`
+                        : "";
+                    } else {
+                      currentPair.user += beforeText ? `${beforeText}\n` : "";
+                    }
                   }
                   newMessages.push({
                     sender,
@@ -270,6 +344,15 @@ const DraftPage = () => {
                       language || "plaintext"
                     }\n${code.trim()}\`\`\``
                   );
+                  if (sender === "bot") {
+                    currentPair.Assistant += `\`\`\`${
+                      language || "plaintext"
+                    }\n${code.trim()}\`\`\`\n`;
+                  } else {
+                    currentPair.user += `\`\`\`${
+                      language || "plaintext"
+                    }\n${code.trim()}\`\`\`\n`;
+                  }
                   lastIndex = match.index + fullMatch.length;
                 }
 
@@ -284,9 +367,24 @@ const DraftPage = () => {
                       remainingText
                     )}`
                   );
+                  if (sender === "bot") {
+                    currentPair.Assistant += cleanText(remainingText);
+                  } else {
+                    currentPair.user += remainingText;
+                  }
+                }
+
+                if (currentPair.Assistant || currentPair.user) {
+                  supabaseMessages.push({ ...currentPair });
+                  currentPair = { Assistant: "", user: "" };
                 }
               }
             });
+
+          // Push any remaining pair
+          if (currentPair.Assistant || currentPair.user) {
+            supabaseMessages.push(currentPair);
+          }
 
           if (newMessages.length > 0) {
             setMessages((prev) => [...prev, ...newMessages]);
