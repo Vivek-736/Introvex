@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import ResearchLoader from "@/components/ResearchLoader";
 import { Download, Sparkles, FileText, Save } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 
 const ResearchPage = () => {
   const { id } = useParams();
@@ -15,6 +16,8 @@ const ResearchPage = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [showSourceDialog, setShowSourceDialog] = useState(false);
   const [sourceMarkdown, setSourceMarkdown] = useState<string>("");
+  const { user } = useUser();
+  const userEmail = user?.emailAddresses[0]?.emailAddress || "";
 
   useEffect(() => {
     const fetchAndGeneratePDF = async () => {
@@ -23,6 +26,7 @@ const ResearchPage = () => {
           .from("Data")
           .select("research_paper")
           .eq("chatId", chatId)
+          .eq("userEmail", userEmail)
           .maybeSingle();
 
         if (error || !data?.research_paper) {

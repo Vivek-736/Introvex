@@ -29,6 +29,8 @@ const DraftPage = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageSetRef = useRef<Set<string>>(new Set());
 
+  const userEmail = user?.emailAddresses[0]?.emailAddress || "";
+
   useEffect(() => {
     // console.log("Vapi instance:", vapi);
     // console.log(
@@ -50,6 +52,7 @@ const DraftPage = () => {
           .from("Data")
           .select("message, vapi_chat")
           .eq("chatId", chatId)
+          .eq("userEmail", userEmail)
           .maybeSingle();
 
         if (error) {
