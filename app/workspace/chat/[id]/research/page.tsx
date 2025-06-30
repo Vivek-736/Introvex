@@ -5,7 +5,7 @@ import { supabase } from "@/services/SupabaseClient";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import ResearchLoader from "@/components/ResearchLoader";
-import { Download, Sparkles } from "lucide-react";
+import { Download, Sparkles, FileText } from "lucide-react";
 
 const ResearchPage = () => {
   const { id } = useParams();
@@ -45,7 +45,6 @@ const ResearchPage = () => {
         setLoading(false);
       }
     };
-
     fetchAndGeneratePDF();
   }, [chatId]);
 
@@ -59,40 +58,57 @@ const ResearchPage = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleViewSource = () => {
+    toast("Source view coming soon!");
+    // TODO: Implement source view functionality
+  };
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center p-6 relative">
-      {/* AI Edit Button */}
-      <button
-        onClick={() => setShowDialog(true)}
-        className="absolute top-6 right-6 flex items-center gap-2 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 text-white px-4 py-2 rounded-lg font-semibold shadow-lg animate-pulse hover:animate-none hover:brightness-110 transition-all"
-      >
-        <Sparkles className="w-5 h-5" />
-        AI Edit
-      </button>
-
-      <h1 className="text-3xl font-bold mb-4">📄 Research Paper Viewer</h1>
-
       {loading ? (
         <ResearchLoader />
-      ) : pdfBlob ? (
-        <>
-          <iframe
-            title="PDF Viewer"
-            src={URL.createObjectURL(pdfBlob)}
-            width="100%"
-            height="600px"
-            className="max-w-4xl w-full border border-purple-500 rounded-xl shadow-lg mb-4"
-          ></iframe>
-
-          <button
-            onClick={handleDownload}
-            className="bg-purple-600 flex gap-2 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-xl transition"
-          >
-            <Download className="text-white w-6 h-6" /> Download PDF
-          </button>
-        </>
       ) : (
-        <p className="text-red-400">No PDF available to display.</p>
+        <>
+          <h1 className="text-3xl font-bold mb-4">📄 Research Paper Viewer</h1>
+
+          <div className="flex gap-4 mb-4">
+            <button
+              onClick={() => setShowDialog(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 text-white px-4 py-2 rounded-lg font-semibold shadow-lg animate-pulse hover:animate-none hover:brightness-110 transition-all"
+            >
+              <Sparkles className="w-5 h-5" />
+              AI Edit
+            </button>
+            <button
+              onClick={handleViewSource}
+              className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:bg-gray-600 transition-all"
+            >
+              <FileText className="w-5 h-5" />
+              View Source
+            </button>
+          </div>
+
+          {pdfBlob ? (
+            <>
+              <iframe
+                title="PDF Viewer"
+                src={URL.createObjectURL(pdfBlob)}
+                width="100%"
+                height="600px"
+                className="max-w-4xl w-full border border-purple-500 rounded-xl shadow-lg mb-4"
+              ></iframe>
+
+              <button
+                onClick={handleDownload}
+                className="bg-purple-600 flex gap-2 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-xl transition"
+              >
+                <Download className="text-white w-6 h-6" /> Download PDF
+              </button>
+            </>
+          ) : (
+            <p className="text-red-400">No PDF available to display.</p>
+          )}
+        </>
       )}
 
       {showDialog && (
