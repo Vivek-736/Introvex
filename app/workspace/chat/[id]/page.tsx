@@ -7,6 +7,7 @@ import { supabase } from "@/services/SupabaseClient";
 import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
 import ChatButton from "@/components/workspaceUI/ChatButton";
+import { useUser } from "@clerk/nextjs";
 
 const ChatIdPage = () => {
   const params = useParams();
@@ -17,12 +18,16 @@ const ChatIdPage = () => {
   const chatId = chatIdFromParams || chatIdFromQuery;
 
   type Message = { sender: string; text: string; language?: string };
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const { user } = useUser();
+  const userEmail = user?.emailAddresses[0]?.emailAddress || "";
 
   useEffect(() => {
     const fetchChatData = async () => {
@@ -39,6 +44,7 @@ const ChatIdPage = () => {
           .from("Data")
           .select("message")
           .eq("chatId", chatId)
+          .eq("userEmail", userEmail)
           .maybeSingle();
 
         if (error) {
