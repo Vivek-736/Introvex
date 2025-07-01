@@ -634,7 +634,7 @@ const DraftPage = () => {
                 {msg.language ? (
                   <div className="relative">
                     <pre
-                      className={`language-${msg.language} bg-gray-950 rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96`}
+                      className={`language-${msg.language} bg-gray-950 rounded-lg p-4 overflow-x-auto md:text-sm text-xs font-mono max-h-96`}
                     >
                       <code className={`language-${msg.language}`}>
                         {msg.text}
@@ -651,7 +651,7 @@ const DraftPage = () => {
                 ) : isLoading && index === messages.length - 1 ? (
                   <p>Loading...</p>
                 ) : (
-                  <p className="text-base leading-relaxed whitespace-pre-wrap">
+                  <p className="md:text-base text-xs leading-relaxed whitespace-pre-wrap">
                     {msg.text}
                   </p>
                 )}
@@ -668,7 +668,7 @@ const DraftPage = () => {
                 <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-75 animate-ping" />
               )}
               <button
-                className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 animate-glitter flex items-center gap-2"
+                className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs md:text-base font-semibold md:px-6 md:py-3 p-2 rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 animate-glitter flex items-center gap-2"
                 onClick={handleVoiceAgentChat}
                 disabled={isCallActive}
               >
@@ -682,15 +682,15 @@ const DraftPage = () => {
             </div>
             {isCallActive && (
               <button
-                className="relative bg-rose-600 text-white text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-rose-700 transition-all duration-300"
+                className="relative bg-rose-600 text-white text-xs md:text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-rose-700 transition-all duration-300"
                 onClick={handleStopCall}
               >
-                <Phone className="h-5 w-5 inline-block mr-2" />
+                <Phone className="h-5 w-5 md:inline-block mr-2 hidden" />
                 Stop Call
               </button>
             )}
             <button
-              className="relative bg-white text-black text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-gray-200 transition-all duration-300 border-2 border-gray-800 animate-pulse"
+              className="relative bg-white text-black text-xs md:text-base font-semibold p-2 md:px-6 md:py-3 rounded-lg shadow-lg hover:bg-gray-200 transition-all duration-300 border-2 border-gray-800 animate-pulse"
               onClick={handleDraftResearchPaper}
             >
               Draft a Research Paper
