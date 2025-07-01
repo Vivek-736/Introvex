@@ -7,16 +7,14 @@ import Link from "next/link";
 export default function Hero() {
   return (
     <section className="min-h-screen bg-[url('/pattern.png')] bg-cover bg-center flex items-center justify-center  pt-16 relative overflow-hidden">
-      {/* Background Elements */}
+      
       <div className="absolute inset-0 bg-gradient-to-r from-slate-500/20 to-slate-500/20"></div>
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-slate-800/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left Content */}
           <div className="text-left">
-            {/* Main Headline */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
               <span className="block font-['Instrument_Serif'] font-medium">
                 Effortless
@@ -29,7 +27,6 @@ export default function Hero() {
               </span>
             </h1>
 
-            {/* Subtitle */}
             <div className="mb-8">
               <p className="text-xl md:text-2xl text-purple-300 mb-4 font-semibold">
                 Data to Draft
@@ -42,7 +39,6 @@ export default function Hero() {
               </p>
             </div>
 
-            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
               <Link href={"/workspace"}>
                 <Button
@@ -56,16 +52,12 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* Right Content - AI Illustration */}
-          <div className="relative">
+          <div className="relative md:block hidden">
             <div className="relative mx-auto max-w-lg">
-              {/* Main AI Bot Container */}
               <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
-                {/* Floating Elements */}
                 <div className="absolute -top-4 -right-4 w-8 h-8 bg-purple-500 rounded-full animate-bounce delay-100"></div>
                 <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-violet-500 rounded-full animate-bounce delay-300"></div>
 
-                {/* AI Bot Icon */}
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-violet-600 rounded-2xl mb-4 shadow-lg">
                     <Bot className="w-10 h-10 text-white" />
@@ -78,7 +70,6 @@ export default function Hero() {
                   </p>
                 </div>
 
-                {/* Chat Bubbles */}
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-violet-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -121,7 +112,6 @@ export default function Hero() {
                   </div>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="mt-6 p-4 bg-slate-800/50 rounded-lg border border-slate-700/30">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-slate-300 text-sm font-medium">
@@ -135,7 +125,6 @@ export default function Hero() {
                 </div>
               </div>
 
-              {/* Floating Code Snippets */}
               <div className="absolute -top-8 -left-8 bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-lg p-3 shadow-lg animate-float">
                 <code className="text-purple-400 text-xs font-mono">
                   {`\\documentclass{article}`}
