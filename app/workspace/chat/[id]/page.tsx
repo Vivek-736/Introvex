@@ -8,6 +8,7 @@ import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
 import ChatButton from "@/components/workspaceUI/ChatButton";
 import { useUser } from "@clerk/nextjs";
+import { Import } from "lucide-react";
 
 const ChatIdPage = () => {
   const params = useParams();
@@ -273,7 +274,7 @@ const ChatIdPage = () => {
                 {msg.language ? (
                   <div className="relative">
                     <pre
-                      className={`language-${msg.language} bg-gray-950 rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96`}
+                      className={`language-${msg.language} bg-gray-950 rounded-lg p-4 overflow-x-auto md:text-sm text-xs font-mono max-h-96`}
                     >
                       <code className={`language-${msg.language}`}>
                         {msg.text}
@@ -290,7 +291,7 @@ const ChatIdPage = () => {
                 ) : isLoading && index === messages.length - 1 ? (
                   <p>Loading...</p>
                 ) : (
-                  <p className="text-base leading-relaxed whitespace-pre-wrap">
+                  <p className="md:text-base text-xs leading-relaxed whitespace-pre-wrap">
                     {msg.text}
                   </p>
                 )}
@@ -313,14 +314,14 @@ const ChatIdPage = () => {
                 }
               }}
               disabled={sending}
-              className="flex-1 p-3 bg-transparent border-none text-white text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
+              className="flex-1 p-3 text-xs bg-transparent border-none text-white sm:text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
             />
             <div className="flex items-center gap-3 ml-3">
               <button
                 className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm px-4 py-2 rounded-lg shadow-md hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
                 onClick={handleDraftRedirect}
               >
-                Import Chat
+                <span className="md:block hidden">Import chat</span> <Import className="md:hidden" />
                 <span className="absolute inset-0 glitter"></span>
               </button>
               <ChatButton
