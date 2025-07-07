@@ -5,14 +5,12 @@ export async function POST(req: Request) {
     const { latex: latexInput, chatId } = await req.json();
 
     if (!latexInput || !chatId) {
-      return NextResponse.json(
-        { error: "Missing latex or chatId" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing latex or chatId" }, { status: 400 });
     }
 
     const formData = new FormData();
     const texBlob = new Blob([latexInput], { type: "text/plain" });
+    
     formData.append("file", texBlob, "main.tex");
 
     const response = await fetch("https://latexonline.cc/compile", {
@@ -21,7 +19,7 @@ export async function POST(req: Request) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch PDF from latexonline.cc");
+      throw new Error("Failed to generate PDF from latexonline.cc");
     }
 
     const pdfBuffer = await response.arrayBuffer();
@@ -33,7 +31,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (err: any) {
-    console.error("🔥 Error generating PDF:", err.message);
+    console.error("🔥 LaTeX PDF Generation Error:", err.message);
     return NextResponse.json(
       { error: "PDF generation failed", details: err.message },
       { status: 500 }
