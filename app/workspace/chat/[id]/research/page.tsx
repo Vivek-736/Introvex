@@ -106,7 +106,7 @@ const ResearchPage = () => {
         <ResearchLoader />
       ) : (
         <>
-          <h1 className="text-3xl font-bold mb-4 mt-10">📄 Research Paper Viewer</h1>
+          <h1 className="text-3xl font-bold mb-4 mt-">📄 Research Paper Viewer</h1>
 
           <div className="flex gap-4 mb-4">
             <button
