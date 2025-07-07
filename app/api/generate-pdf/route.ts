@@ -2,15 +2,22 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { latex: latexInput, chatId } = await req.json();
+    let { latex: latexInput, chatId } = await req.json();
 
     if (!latexInput || !chatId) {
-      return NextResponse.json({ error: "Missing latex or chatId" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing latex or chatId" },
+        { status: 400 }
+      );
     }
+
+    latexInput = latexInput
+      .replace(/^```latex\s*/i, "")
+      .replace(/```$/, "")
+      .trim();
 
     const formData = new FormData();
     const texBlob = new Blob([latexInput], { type: "text/plain" });
-    
     formData.append("file", texBlob, "main.tex");
 
     const response = await fetch("https://latexonline.cc/compile", {
@@ -32,6 +39,7 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error("🔥 LaTeX PDF Generation Error:", err.message);
+    
     return NextResponse.json(
       { error: "PDF generation failed", details: err.message },
       { status: 500 }
