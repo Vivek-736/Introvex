@@ -101,12 +101,12 @@ const ResearchPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center p-6 relative">
+    <div className="min-h-screen bg-black w-full text-white flex flex-col items-center p-6 relative">
       {loading ? (
         <ResearchLoader />
       ) : (
         <>
-          <h1 className="text-3xl font-bold mb-4">📄 Research Paper Viewer</h1>
+          <h1 className="text-3xl font-bold mb-4 mt-10">📄 Research Paper Viewer</h1>
 
           <div className="flex gap-4 mb-4">
             <button

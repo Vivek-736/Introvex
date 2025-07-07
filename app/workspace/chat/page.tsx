@@ -37,8 +37,8 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c0f18] text-white p-8">
-      <h1 className="text-3xl font-bold mb-10 text-center">Chat History</h1>
+    <div className="min-h-screen bg-[#0c0f18] w-full text-white p-8">
+      <h1 className="text-3xl font-bold mb-10 text-center mt-8">Chat History</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {chats.length > 0 ? (
           chats.map((chat) => (
@@ -60,7 +60,7 @@ export default function ChatPage() {
             </div>
           ))
         ) : (
-          <div className="col-span-full text-center py-10">
+          <div className="col-span-full text-center py-4">
             <p className="text-gray-400 text-lg">No chats available</p>
           </div>
         )}
