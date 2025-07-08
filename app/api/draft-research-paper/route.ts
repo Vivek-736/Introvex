@@ -77,7 +77,7 @@ export async function POST(request: Request) {
           body { font-family: 'Roboto Serif', serif; margin: 0; padding: 20px; line-height: 1.6; }
           h1 { text-align: center; color: #333; }
           h2 { color: #555; margin-top: 20px; }
-          .abstract { border-left: 4px solid #007bff; padding-left: 15px; }
+          .abstract { padding-left: 15px; }
           table { width: 100%; border-collapse: collapse; margin: 20px 0; }
           th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
           th { background-color: #f2f2f2; }

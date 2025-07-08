@@ -19,18 +19,43 @@ export async function POST(request: Request) {
       );
     }
 
-    const cleanedHtml = html.replace(/^\s*html\s*/i, "").trim();
+    const cleanedHtml = html
+      .replace(/^\s*html\s*/i, "")
+      .replace(/^\s*```html\s*\n?/, "")
+      .replace(/\s*```\s*$/, "")
+      .trim();
 
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      // @ts-ignore
+      headless: "new",
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--font-render-hinting=none",
+      ],
+      executablePath: process.env.CHROMIUM_PATH || undefined,
+      timeout: 60000,
     });
 
     const page = await browser.newPage();
 
     await page.setContent(cleanedHtml, {
-      waitUntil: "networkidle0",
-      timeout: 60000,
+      waitUntil: "domcontentloaded",
+      timeout: 90000,
+    });
+
+    await page.evaluate(() => {
+      return new Promise((resolve) => {
+        // @ts-ignore
+        if (window.MathJax) {
+          // @ts-ignore
+          window.MathJax.typesetPromise().then(resolve).catch(resolve);
+        } else {
+          resolve(null);
+        }
+      });
     });
 
     const pdfBuffer = await page.pdf({
@@ -43,6 +68,7 @@ export async function POST(request: Request) {
         left: "20mm",
         right: "20mm",
       },
+      timeout: 90000,
     });
 
     await browser.close();
@@ -57,6 +83,10 @@ export async function POST(request: Request) {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    console.error("PDF generation error:", error);
+    return NextResponse.json(
+      { error: `PDF generation failed: ${errorMessage}` },
+      { status: 500 }
+    );
   }
 }

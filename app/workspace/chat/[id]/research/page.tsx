@@ -30,13 +30,17 @@ const ResearchPage = () => {
           .maybeSingle();
 
         if (error || !data?.research_paper) {
-          throw new Error("No research paper found.");
+          throw new Error(
+            `No research paper found: ${error?.message || "Unknown error"}`
+          );
         }
 
         let cleanedResearchPaper = data.research_paper
           .replace(/^\s*html\s*/i, "") // Remove leading "html" (case-insensitive)
           .replace(/^\s*```html\s*\n?/, "") // Remove opening ```html
           .replace(/\s*```\s*$/, "") // Remove closing ```
+          .replace(/^\s*<!DOCTYPE[^>]*>\s*<html[^>]*>\s*<body[^>]*>\s*/i, "") // Remove unexpected DOCTYPE/html/body
+          .replace(/\s*<\/body>\s*<\/html>\s*$/i, "") // Remove closing tags
           .trim();
 
         const fullHtml = `
@@ -48,12 +52,12 @@ const ResearchPage = () => {
             <style>
               body { font-family: 'Roboto Serif', serif; margin: 0; padding: 20px; line-height: 1.6; }
               h1 { text-align: center; color: #333; }
-              h2 { color: #555; margin-top: 20px; }
-              .abstract { border-left: 4px solid #007bff; padding-left: 15px; }
+              h2 { color: #555; margin-top: 40px; }
+              .abstract { padding-left: 15px; }
               table { width: 100%; border-collapse: collapse; margin: 20px 0; }
               th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
               th { background-color: #f2f2f2; }
-              .section { margin-bottom: 20px; }
+              .section { margin-bottom: 20px; margin-top: 40px; }
             </style>
           </head>
           <body>
@@ -70,13 +74,17 @@ const ResearchPage = () => {
         });
 
         if (!response.ok) {
-          throw new Error("PDF generation failed.");
+          const errorText = await response.text();
+          throw new Error(
+            `PDF generation failed: ${response.status} - ${errorText}`
+          );
         }
 
         const blob = await response.blob();
         setPdfBlob(blob);
       } catch (err: any) {
         toast.error(err.message);
+        console.error("PDF generation error:", err);
       } finally {
         setLoading(false);
       }
@@ -85,7 +93,10 @@ const ResearchPage = () => {
   }, [chatId, userEmail]);
 
   const handleDownload = () => {
-    if (!pdfBlob) return;
+    if (!pdfBlob) {
+      toast.error("No PDF available to download.");
+      return;
+    }
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement("a");
     link.href = url;
@@ -102,14 +113,22 @@ const ResearchPage = () => {
     try {
       const bodyContent =
         sourceHtml.match(/<body>([\s\S]*?)<\/body>/)?.[1] || sourceHtml;
+      const cleanedBodyContent = bodyContent
+        .replace(/^\s*html\s*/i, "")
+        .replace(/^\s*```html\s*\n?/, "")
+        .replace(/\s*```\s*$/, "")
+        .replace(/^\s*<!DOCTYPE[^>]*>\s*<html[^>]*>\s*<body[^>]*>\s*/i, "")
+        .replace(/\s*<\/body>\s*<\/html>\s*$/i, "")
+        .trim();
+
       const { error } = await supabase
         .from("Data")
-        .update({ research_paper: bodyContent })
+        .update({ research_paper: cleanedBodyContent })
         .eq("chatId", chatId)
         .eq("userEmail", userEmail);
 
       if (error) {
-        throw new Error("Failed to save changes to Supabase.");
+        throw new Error(`Failed to save changes to Supabase: ${error.message}`);
       }
 
       const response = await fetch("/api/generate-pdf", {
@@ -119,7 +138,10 @@ const ResearchPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error("PDF regeneration failed.");
+        const errorText = await response.text();
+        throw new Error(
+          `PDF regeneration failed: ${response.status} - ${errorText}`
+        );
       }
 
       const blob = await response.blob();
@@ -128,6 +150,7 @@ const ResearchPage = () => {
       setShowSourceDialog(false);
     } catch (err: any) {
       toast.error(err.message);
+      console.error("Save source error:", err);
     }
   };
 
