@@ -90,7 +90,7 @@ export async function POST(req: Request) {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin: 10px 0 25px 0; /* Reduced margin above table */
+            margin: 0px 0 25px 0; /* Reduced margin above table */
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);

@@ -89,7 +89,8 @@ export async function POST(request: Request) {
         <div class="abstract"><h2>Abstract</h2><p>...</p></div>
         <div class="section"><h2>Introduction</h2><p>...</p></div>
         <div class="section"><h2>Methodology</h2><p>S = S₀e^(rt)</p></div>
-        <div class="section"><h2>Results and Discussion</h2><table><tr><th>Method</th><th>Price</th><th>Standard Error</th></tr><tr><td>Standard MC</td><td>...</td><td>...</td></tr></table></div>
+        <div class="section"><h2>Results and Discussion</h2></div>
+        <table><tr><th>Method</th><th>Price</th><th>Standard Error</th></tr><tr><td>Standard MC</td><td>...</td><td>...</td></tr></table>
         <div class="section"><h2>Conclusion</h2><p>...</p></div>
         <div class="section"><h2>References</h2><ul><li>...</li></ul></div>
       </body>
