@@ -101,6 +101,7 @@
     "@types/node": "^22",
     "@types/pdfmake": "^0.2.11",
     "@types/prismjs": "^1.26.5",
+    "@types/puppeteer": "^7.0.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",

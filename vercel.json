@@ -1,4 +1,14 @@
 {
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "next build"
+  "buildCommand": "next build",
+  "functions": {
+    "api/generate-pdf.ts": {
+      "memory": 2048,
+      "maxDuration": 60,
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "CHROMIUM_PATH": "/usr/bin/chromium-browser"
+  }
 }
