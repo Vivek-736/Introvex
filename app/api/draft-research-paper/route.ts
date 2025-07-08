@@ -45,73 +45,60 @@ export async function POST(request: Request) {
     context = context.trim();
 
     const prompt = `
-      You are an expert research assistant tasked with drafting a comprehensive research paper in LaTeX format, following the structure and style of the provided example, including mathematical formulas and tables. Output ONLY the LaTeX code for the research paper, without any additional commentary or markdown code fences.
+      You are an expert research assistant tasked with drafting a comprehensive research paper in HTML format with embedded CSS, following the structure and style of the provided example, including tables and basic mathematical notation (e.g., using <sup> or Unicode for simplicity, as advanced equations like GBM may need MathJax). Output ONLY the complete HTML document with <style> tags for CSS, without any additional commentary or markdown code fences.
 
       The paper must follow this structure:
       - Title: Relevant to the topic from the context.
       - Author: Use "${userName}".
+      - Date: Current date and time in IST (e.g., July 08, 2025, 11:43 AM IST).
       - Abstract: 150–200 words summarizing purpose, methods, and findings.
       - Introduction: Introduce the topic, its significance, and objectives.
       - Literature Review: Summarize relevant research from the context.
-      - Methodology: Describe a hypothetical or relevant research approach, including equations (e.g., Geometric Brownian Motion as in the example).
+      - Methodology: Describe a hypothetical or relevant research approach, including a simple equation (e.g., S = S₀e^(rt) for growth).
       - Results and Discussion: Analyze results with a table comparing methods (similar to Table 1 in the example).
       - Conclusion: Summarize key points and suggest future research.
-      - References: Use APA format in BibTeX.
+      - References: Use a simple unordered list for citations.
 
       Requirements:
-      - Use the article document class with amsmath, amssymb, booktabs, and natbib packages.
-      - Include at least one table (e.g., comparing pricing methods) and mathematical equations (e.g., GBM formula).
-      - Ensure the LaTeX code is compilable with PDFLaTeX.
+      - Use semantic HTML5 tags (e.g., <h1>, <section>, <table>).
+      - Include at least one table (e.g., comparing pricing methods) with 4 rows.
+      - Ensure the HTML is renderable and stylable with the provided CSS.
       - Minimum length: ~1000–1200 words.
       - Include a table similar to the example's Table 1 for European call option pricing.
-      - Use formal academic tone.
+      - Use a formal academic tone.
 
-      Example LaTeX structure to follow:
-      \\documentclass{article}
-      \\usepackage{amsmath, amssymb, booktabs, natbib}
-      \\begin{document}
-      \\title{...}
-      \\author{...}
-      \\maketitle
-      \\begin{abstract}
-      ...
-      \\end{abstract}
-      \\section{Introduction}
-      ...
-      \\section{Literature Review}
-      ...
-      \\section{Methodology}
-      \\begin{equation}
-      dS_t = (r - q)S_t dt + \\sigma S_t dW_t
-      \\end{equation}
-      ...
-      \\section{Results and Discussion}
-      \\begin{table}[h]
-      \\centering
-      \\begin{tabular}{lcc}
-      \\toprule
-      Method & Price & Standard Error \\\\
-      \\midrule
-      Standard MC & ... & ... \\\\
-      Antithetic Variates & ... & ... \\\\
-      Control Variates & ... & ... \\\\
-      \\bottomrule
-      \\end{tabular}
-      \\caption{Example Results for European Call Option Pricing}
-      \\label{tab:results}
-      \\end{table}
-      ...
-      \\section{Conclusion}
-      ...
-      \\begin{thebibliography}{9}
-      ...
-      \\end{thebibliography}
-      \\end{document}
+      Example HTML structure to follow:
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+          h1 { text-align: center; color: #333; }
+          h2 { color: #555; margin-top: 20px; }
+          .abstract { border-left: 4px solid #007bff; padding-left: 15px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .section { margin-bottom: 20px; }
+        </style>
+      </head>
+      <body>
+        <h1>...</h1>
+        <p><strong>Author:</strong> ...</p>
+        <p><strong>Date:</strong> ...</p>
+        <div class="abstract"><h2>Abstract</h2><p>...</p></div>
+        <div class="section"><h2>Introduction</h2><p>...</p></div>
+        <div class="section"><h2>Methodology</h2><p>S = S₀e^(rt)</p></div>
+        <div class="section"><h2>Results and Discussion</h2><table><tr><th>Method</th><th>Price</th><th>Standard Error</th></tr><tr><td>Standard MC</td><td>...</td><td>...</td></tr></table></div>
+        <div class="section"><h2>Conclusion</h2><p>...</p></div>
+        <div class="section"><h2>References</h2><ul><li>...</li></ul></div>
+      </body>
+      </html>
 
       Conversation context:
       ${context}
 
-      Draft the LaTeX paper now.
+      Draft the HTML paper now.
     `;
 
     const response = await fetch(

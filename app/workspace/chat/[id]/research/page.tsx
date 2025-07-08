@@ -15,7 +15,7 @@ const ResearchPage = () => {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showSourceDialog, setShowSourceDialog] = useState(false);
-  const [sourceLatex, setSourceLatex] = useState<string>("");
+  const [sourceHtml, setSourceHtml] = useState<string>("");
   const { user } = useUser();
   const userEmail = user?.emailAddresses[0]?.emailAddress || "";
 
@@ -33,12 +33,31 @@ const ResearchPage = () => {
           throw new Error("No research paper found.");
         }
 
-        setSourceLatex(data.research_paper);
+        // Convert LaTeX to basic HTML (simplified conversion)
+        let htmlContent = data.research_paper
+          .replace(/\\documentclass\{[^}]*\}/, "")
+          .replace(/\\usepackage\{[^}]*\}/g, "")
+          .replace(/\\title\{([^}]*)\}/, "<h1>$1</h1>")
+          .replace(/\\author\{([^}]*)\}/, "<p><strong>Author:</strong> $1</p>")
+          .replace(/\\date\{([^}]*)\}/, "<p><strong>Date:</strong> $1</p>")
+          .replace(/\\maketitle/, "")
+          .replace(
+            /\\begin\{abstract\}/,
+            "<div class='abstract'><h2>Abstract</h2><p>"
+          )
+          .replace(/\\end\{abstract\}/, "</p></div>")
+          .replace(/\\section\{([^}]*)\}/, "<div class='section'><h2>$1</h2>")
+          .replace(/\\end\{document\}/, "</div>")
+          .replace(/\\end\{[^}]*\}/g, "</div>")
+          .replace(/\n/g, "<br>");
+
+        const fullHtml = `<div>${htmlContent}</div>`;
+        setSourceHtml(fullHtml);
 
         const response = await fetch("/api/generate-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ latex: data.research_paper, chatId }),
+          body: JSON.stringify({ html: fullHtml, chatId }),
         });
 
         if (!response.ok) {
@@ -74,7 +93,7 @@ const ResearchPage = () => {
     try {
       const { error } = await supabase
         .from("Data")
-        .update({ research_paper: sourceLatex })
+        .update({ research_paper: sourceHtml })
         .eq("chatId", chatId)
         .eq("userEmail", userEmail);
 
@@ -85,7 +104,7 @@ const ResearchPage = () => {
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latex: sourceLatex, chatId }),
+        body: JSON.stringify({ html: sourceHtml, chatId }),
       });
 
       if (!response.ok) {
@@ -107,7 +126,7 @@ const ResearchPage = () => {
         <ResearchLoader />
       ) : (
         <>
-          <h1 className="md:text-3xl text-lg font-bold mb-4 mt-4">
+          <h1 className="text-3xl font-bold mb-4 mt-4">
             📄 Research Paper Viewer
           </h1>
 
@@ -117,32 +136,32 @@ const ResearchPage = () => {
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 text-white px-4 py-2 rounded-lg font-semibold shadow-lg animate-pulse hover:animate-none hover:brightness-110 transition-all"
             >
               <Sparkles className="w-5 h-5" />
-              <span className="md:flex hidden">AI Edit</span>
+              AI Edit
             </button>
             <button
               onClick={handleViewSource}
               className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:bg-gray-600 transition-all"
             >
               <FileText className="w-5 h-5" />
-              <span className="md:flex hidden">View Source</span>
+              View Source
             </button>
             <button
               onClick={handleDownload}
               className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:bg-purple-500 transition-all"
             >
               <Download className="w-5 h-5" />
-              <span className="md:flex hidden">Download PDF</span>
+              Download PDF
             </button>
           </div>
 
           <div className="flex w-full max-w-6xl gap-4">
             <div className="w-1/2">
-              <h2 className="text-xl font-bold mb-2">LaTeX Source</h2>
+              <h2 className="text-xl font-bold mb-2">HTML Source</h2>
               <textarea
-                value={sourceLatex}
+                value={sourceHtml}
                 readOnly
                 className="w-full h-[600px] p-4 border border-gray-200 rounded-lg text-sm text-black bg-white resize-none font-mono"
-                placeholder="LaTeX source code..."
+                placeholder="HTML source code..."
               />
             </div>
             <div className="w-1/2">
@@ -205,13 +224,13 @@ const ResearchPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50">
           <div className="bg-white text-black rounded-xl p-8 max-w-2xl w-full shadow-2xl relative">
             <h2 className="text-xl font-bold mb-4 text-black">
-              Edit Source LaTeX
+              Edit Source HTML
             </h2>
             <textarea
-              value={sourceLatex}
-              onChange={(e) => setSourceLatex(e.target.value)}
+              value={sourceHtml}
+              onChange={(e) => setSourceHtml(e.target.value)}
               className="w-full h-96 p-4 border border-gray-200 rounded-lg text-sm text-black bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y font-mono"
-              placeholder="Edit your research paper LaTeX here..."
+              placeholder="Edit your research paper HTML here..."
             />
             <div className="mt-6 flex justify-end gap-4">
               <button
