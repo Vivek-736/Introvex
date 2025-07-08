@@ -33,25 +33,34 @@ const ResearchPage = () => {
           throw new Error("No research paper found.");
         }
 
-        // Convert LaTeX to basic HTML (simplified conversion)
-        let htmlContent = data.research_paper
-          .replace(/\\documentclass\{[^}]*\}/, "")
-          .replace(/\\usepackage\{[^}]*\}/g, "")
-          .replace(/\\title\{([^}]*)\}/, "<h1>$1</h1>")
-          .replace(/\\author\{([^}]*)\}/, "<p><strong>Author:</strong> $1</p>")
-          .replace(/\\date\{([^}]*)\}/, "<p><strong>Date:</strong> $1</p>")
-          .replace(/\\maketitle/, "")
-          .replace(
-            /\\begin\{abstract\}/,
-            "<div class='abstract'><h2>Abstract</h2><p>"
-          )
-          .replace(/\\end\{abstract\}/, "</p></div>")
-          .replace(/\\section\{([^}]*)\}/, "<div class='section'><h2>$1</h2>")
-          .replace(/\\end\{document\}/, "</div>")
-          .replace(/\\end\{[^}]*\}/g, "</div>")
-          .replace(/\n/g, "<br>");
+        let cleanedResearchPaper = data.research_paper
+          .replace(/^\s*html\s*/i, "") // Remove leading "html" (case-insensitive)
+          .replace(/^\s*```html\s*\n?/, "") // Remove opening ```html
+          .replace(/\s*```\s*$/, "") // Remove closing ```
+          .trim();
 
-        const fullHtml = `<div>${htmlContent}</div>`;
+        const fullHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+            <link href="https://fonts.googleapis.com/css2?family=Roboto+Serif:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+              body { font-family: 'Roboto Serif', serif; margin: 0; padding: 20px; line-height: 1.6; }
+              h1 { text-align: center; color: #333; }
+              h2 { color: #555; margin-top: 20px; }
+              .abstract { border-left: 4px solid #007bff; padding-left: 15px; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              .section { margin-bottom: 20px; }
+            </style>
+          </head>
+          <body>
+            ${cleanedResearchPaper}
+          </body>
+          </html>
+        `;
         setSourceHtml(fullHtml);
 
         const response = await fetch("/api/generate-pdf", {
@@ -91,9 +100,11 @@ const ResearchPage = () => {
 
   const handleSaveSource = async () => {
     try {
+      const bodyContent =
+        sourceHtml.match(/<body>([\s\S]*?)<\/body>/)?.[1] || sourceHtml;
       const { error } = await supabase
         .from("Data")
-        .update({ research_paper: sourceHtml })
+        .update({ research_paper: bodyContent })
         .eq("chatId", chatId)
         .eq("userEmail", userEmail);
 
@@ -136,27 +147,21 @@ const ResearchPage = () => {
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 text-white px-4 py-2 rounded-lg font-semibold shadow-lg animate-pulse hover:animate-none hover:brightness-110 transition-all"
             >
               <Sparkles className="w-5 h-5" />
-              <span className="sm:flex hidden">
-                AI Edit
-              </span>
+              <span className="sm:flex hidden">AI Edit</span>
             </button>
             <button
               onClick={handleViewSource}
               className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:bg-gray-600 transition-all"
             >
               <FileText className="w-5 h-5" />
-              <span className="sm:flex hidden">
-                View Source
-              </span>
+              <span className="sm:flex hidden">View Source</span>
             </button>
             <button
               onClick={handleDownload}
               className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:bg-purple-500 transition-all"
             >
               <Download className="w-5 h-5" />
-              <span className="sm:flex hidden">
-                Download PDF
-              </span>
+              <span className="sm:flex hidden">Download PDF</span>
             </button>
           </div>
 
