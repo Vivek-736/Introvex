@@ -40,69 +40,97 @@ export async function POST(req: Request) {
       <!DOCTYPE html>
       <html>
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
         <style>
           body {
-            font-family: 'Roboto', Arial, sans-serif;
+            font-family: 'Merriweather', serif;
             margin: 0;
-            padding: 20px; /* Reduced outer padding for tighter layout */
-            line-height: 1.5;
+            padding: 20px;
+            line-height: 1.6;
             color: #333;
+            font-size: 14px;
           }
+
+          h1, h2 {
+            font-family: 'Outfit', sans-serif;
+            color: #1a1a1a;
+          }
+
           h1 {
             text-align: center;
-            font-size: 2em;
-            margin: -155px 0 15px; /* Adjusted to positive margin for proper title placement */
-            color: #222;
+            font-size: 2.2em;
+            margin: -155px 0 20px; /* Retain your original title position */
           }
+
           h2 {
-            font-size: 1.4em;
-            color: #444;
-            margin: 20px 0 8px; /* Adjusted for uniform section spacing */
+            font-size: 1.6em;
+            margin: 30px 0 15px;
           }
+
           .abstract {
-            border-left: 4px solid #000; /* Black strip */
-            padding-left: 15px;
-            margin: 15px 0; /* Uniform spacing around abstract */
+            border-left: 4px solid #000; /* Changed to black */
+            padding-left: 16px;
+            margin: 20px 0 25px;
           }
+
+          .section {
+            margin-bottom: 30px;
+          }
+
+          p {
+            margin: 10px 0;
+          }
+
+          ul {
+            padding-left: 20px;
+            margin: 10px 0 20px;
+          }
+
           table {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            page-break-before: avoid; /* Prevent page break before table */
-            page-break-inside: avoid; /* Prevent page break inside table */
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 10px 0 25px 0; /* Reduced margin above table */
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
           }
+
           th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #ccc;
+            padding: 10px 12px;
             text-align: left;
+            background-color: #fff;
           }
+
           th {
-            background-color: #f2f2f2;
+            background-color: #f5f5f5;
             font-weight: 700;
           }
-          .section {
-            margin-bottom: 15px; /* Reduced gap between sections */
+
+          /* Prevent page breaks in bad places */
+          h1, h2 {
+            page-break-after: avoid;
           }
-          p {
-            margin: 8px 0; /* Tighter paragraph spacing */
+
+          table, tr, td, th {
+            page-break-inside: avoid !important;
           }
-          ul {
-            margin: 8px 0 15px 20px;
-            padding-left: 20px;
-          }
-          /* Uniform page margins and no mid-page gaps */
+
           @page {
-            margin: 20mm 15mm 20mm 15mm; /* Slightly reduced margins for tighter flow */
+            margin: 20mm 15mm;
           }
-          h2 { page-break-after: avoid; }
-          /* Ensure content flows continuously */
-          * { orphans: 2; widows: 2; }
+
+          * {
+            orphans: 2;
+            widows: 2;
+          }
         </style>
       </head>
       <body>${cleanedHtml}</body>
       </html>
     `;
+
     await page.setContent(fullHtml, { waitUntil: "networkidle0" });
 
     // @ts-ignore
@@ -113,7 +141,7 @@ export async function POST(req: Request) {
     if (!pdfBuffer || pdfBuffer.length === 0) {
       throw new Error("PDF generation resulted in an empty file");
     }
-    
+
     // @ts-ignore
     return new NextResponse(pdfBuffer, {
       headers: {
