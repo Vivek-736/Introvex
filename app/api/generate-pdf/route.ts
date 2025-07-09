@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       if (isDev) {
         const puppeteer = await import("puppeteer");
         return puppeteer.default.launch({
-          headless: true,
+          headless: "new",
           args: ["--no-sandbox", "--disable-setuid-sandbox"],
         });
       } else {
@@ -31,6 +31,7 @@ export async function POST(request: Request) {
         const puppeteer = await import("puppeteer-core");
         // @ts-ignore
         const executablePath = await chromium.executablePath;
+        console.log("🧪 chromium.executablePath:", executablePath);
 
         if (!executablePath) {
           throw new Error("❌ chromium.executablePath is undefined on Vercel.");
@@ -40,8 +41,7 @@ export async function POST(request: Request) {
           // @ts-ignore
           args: chromium.args,
           executablePath,
-          // @ts-ignore
-          headless: chromium.headless,
+          headless: "new",
         });
       }
     })();
@@ -78,7 +78,6 @@ export async function POST(request: Request) {
     });
 
     await browser.close();
-
     // @ts-ignore
     return new NextResponse(pdfBuffer, {
       headers: {
