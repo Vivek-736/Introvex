@@ -31,10 +31,11 @@ export async function POST(request: Request) {
         const puppeteer = await import("puppeteer-core");
 
         // @ts-ignore
-        const executablePath = await chromium.executablePath;
+        let executablePath = await chromium.executablePath;
 
         if (!executablePath) {
-          throw new Error("chromium.executablePath is undefined on Vercel.");
+          executablePath = "/var/task/node_modules/chrome-aws-lambda/bin/chromium";
+          console.warn("⚠️ Falling back to hardcoded executablePath:", executablePath);
         }
 
         return puppeteer.default.launch({
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
     });
 
     await browser.close();
+
     // @ts-ignore
     return new NextResponse(pdfBuffer, {
       headers: {
