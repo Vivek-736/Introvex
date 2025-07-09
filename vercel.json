@@ -2,8 +2,8 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "next build",
   "functions": {
-    "app/api/generate-pdf": {
-      "memory": 2048,
+    "app/api/generate-pdf/route.ts": {
+      "memory": 1024,
       "maxDuration": 60
     }
   }

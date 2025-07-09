@@ -29,13 +29,11 @@ export async function POST(request: Request) {
       } else {
         const chromium = await import("chrome-aws-lambda");
         const puppeteer = await import("puppeteer-core");
-
         // @ts-ignore
-        let executablePath = await chromium.executablePath;
+        const executablePath = await chromium.executablePath;
 
         if (!executablePath) {
-          executablePath = "/var/task/node_modules/chrome-aws-lambda/bin/chromium";
-          console.warn("⚠️ Falling back to hardcoded executablePath:", executablePath);
+          throw new Error("❌ chromium.executablePath is undefined on Vercel.");
         }
 
         return puppeteer.default.launch({
