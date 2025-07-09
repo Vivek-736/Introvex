@@ -1,14 +1,12 @@
 {
-  "name": "my-v0-project",
+  "name": "intro-optimized",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "prepare": "npm install --legacy-peer-deps",
-    "vercel-build": "npm install --legacy-peer-deps && next build"
+    "lint": "next lint"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.20.1",
@@ -49,7 +47,6 @@
     "@vapi-ai/web": "^2.3.8",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.2",
-    "chrome-aws-lambda": "^10.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
@@ -75,8 +72,9 @@
     "pdfmake": "^0.2.20",
     "prism-themes": "^1.9.0",
     "prismjs": "^1.29.0",
-    "puppeteer": "^19.11.1",
-    "puppeteer-core": "^19.11.1",
+    "puppeteer": "10.4.0",
+    "puppeteer-core": "10.4.0",
+    "chrome-aws-lambda": "^10.1.0",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
