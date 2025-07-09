@@ -1,20 +1,14 @@
 import { NextResponse } from "next/server";
-import puppeteer from "puppeteer";
+
+const isDev = !process.env.AWS_REGION;
 
 export async function POST(request: Request) {
   try {
     const { html, chatId } = await request.json();
 
-    if (!html) {
+    if (!html || !chatId) {
       return NextResponse.json(
-        { error: "HTML content is required" },
-        { status: 400 }
-      );
-    }
-    
-    if (!chatId) {
-      return NextResponse.json(
-        { error: "chatId is required" },
+        { error: "HTML content and chatId are required" },
         { status: 400 }
       );
     }
@@ -25,19 +19,26 @@ export async function POST(request: Request) {
       .replace(/\s*```\s*$/, "")
       .trim();
 
-    const browser = await puppeteer.launch({
-      // @ts-ignore
-      headless: "new",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--font-render-hinting=none",
-      ],
-      executablePath: process.env.CHROMIUM_PATH || undefined,
-      timeout: 60000,
-    });
+    const browser = await (async () => {
+      if (isDev) {
+        const puppeteer = await import("puppeteer");
+        return puppeteer.default.launch({
+          headless: true,
+          args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        });
+      } else {
+        const chromium = await import("chrome-aws-lambda");
+        const puppeteer = await import("puppeteer-core");
+        return puppeteer.default.launch({
+          // @ts-ignore
+          args: chromium.args,
+          // @ts-ignore
+          executablePath: await chromium.executablePath,
+          // @ts-ignore
+          headless: chromium.headless,
+        });
+      }
+    })();
 
     const page = await browser.newPage();
 
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
       timeout: 90000,
     });
 
+    // @ts-ignore
     await page.evaluate(() => {
       return new Promise((resolve) => {
         // @ts-ignore
@@ -68,11 +70,9 @@ export async function POST(request: Request) {
         left: "20mm",
         right: "20mm",
       },
-      timeout: 90000,
     });
 
     await browser.close();
-
     // @ts-ignore
     return new NextResponse(pdfBuffer, {
       headers: {
