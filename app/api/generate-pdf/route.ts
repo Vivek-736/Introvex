@@ -1,6 +1,5 @@
+import puppeteer from "puppeteer";
 import { NextResponse } from "next/server";
-
-const isDev = !process.env.AWS_REGION;
 
 export async function POST(request: Request) {
   try {
@@ -19,32 +18,10 @@ export async function POST(request: Request) {
       .replace(/\s*```\s*$/, "")
       .trim();
 
-    const browser = await (async () => {
-      if (isDev) {
-        const puppeteer = await import("puppeteer");
-        return puppeteer.default.launch({
-          headless: "new",
-          args: ["--no-sandbox", "--disable-setuid-sandbox"],
-        });
-      } else {
-        const chromium = await import("chrome-aws-lambda");
-        const puppeteer = await import("puppeteer-core");
-        // @ts-ignore
-        const executablePath = await chromium.executablePath;
-        console.log("🧪 chromium.executablePath:", executablePath);
-
-        if (!executablePath) {
-          throw new Error("❌ chromium.executablePath is undefined on Vercel.");
-        }
-
-        return puppeteer.default.launch({
-          // @ts-ignore
-          args: chromium.args,
-          executablePath,
-          headless: "new",
-        });
-      }
-    })();
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
     const page = await browser.newPage();
 
@@ -53,7 +30,6 @@ export async function POST(request: Request) {
       timeout: 90000,
     });
 
-    // @ts-ignore
     await page.evaluate(() => {
       return new Promise((resolve) => {
         // @ts-ignore
@@ -78,6 +54,7 @@ export async function POST(request: Request) {
     });
 
     await browser.close();
+
     // @ts-ignore
     return new NextResponse(pdfBuffer, {
       headers: {
