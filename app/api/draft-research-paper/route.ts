@@ -66,6 +66,7 @@ export async function POST(request: Request) {
       - Use Google Fonts (Roboto Serif) via CDN (https://fonts.googleapis.com/css2?family=Roboto+Serif:wght@400;700&display=swap).
       - Minimum length: ~1000–1200 words.
       - Use a formal academic tone.
+      *** The above details are just for understanding, take the conversation context that will be provided in the request body and use it to draft the paper. ***
 
       Example HTML structure to follow:
       <!DOCTYPE html>
