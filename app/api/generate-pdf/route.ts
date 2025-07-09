@@ -29,11 +29,18 @@ export async function POST(request: Request) {
       } else {
         const chromium = await import("chrome-aws-lambda");
         const puppeteer = await import("puppeteer-core");
+
+        // @ts-ignore
+        const executablePath = await chromium.executablePath;
+
+        if (!executablePath) {
+          throw new Error("chromium.executablePath is undefined on Vercel.");
+        }
+
         return puppeteer.default.launch({
           // @ts-ignore
           args: chromium.args,
-          // @ts-ignore
-          executablePath: await chromium.executablePath,
+          executablePath,
           // @ts-ignore
           headless: chromium.headless,
         });
@@ -61,7 +68,6 @@ export async function POST(request: Request) {
     });
 
     const pdfBuffer = await page.pdf({
-      // @ts-ignore
       format: "A4",
       printBackground: true,
       margin: {
