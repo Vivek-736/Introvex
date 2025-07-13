@@ -25,6 +25,8 @@ const DraftPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [vapiConversation, setVapiConversation] = useState<any[]>([]);
   const [isCallActive, setIsCallActive] = useState(false);
+  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+  const [isDraftLoading, setIsDraftLoading] = useState(false);
   const vapiConversationRef = useRef<any[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageSetRef = useRef<Set<string>>(new Set());
@@ -32,20 +34,12 @@ const DraftPage = () => {
   const userEmail = user?.emailAddresses[0]?.emailAddress || "";
 
   useEffect(() => {
-    // console.log("Vapi instance:", vapi);
-    // console.log(
-    //   "Vapi SDK version:",
-    //   require("@vapi-ai/web/package.json").version
-    // );
-
     const fetchChatData = async () => {
       if (!chatId) {
         console.warn("No chatId found in params or query");
         setIsLoading(false);
         return;
       }
-
-      // console.log("Fetching chat with chatId:", chatId);
 
       try {
         const { data, error } = await supabase
@@ -226,7 +220,6 @@ const DraftPage = () => {
       );
 
       if (uniqueNewMessages.length === 0) {
-        // console.log("No new messages to append to Supabase.");
         return;
       }
 
@@ -255,8 +248,6 @@ const DraftPage = () => {
         toast.error("Failed to save conversation.");
         return;
       }
-
-      // console.log("Updated Supabase with messages:", updateData);
     } catch (error) {
       console.error("Error in updateSupabaseWithMessage:", error);
       toast.error("Failed to process conversation.");
@@ -265,31 +256,24 @@ const DraftPage = () => {
 
   useEffect(() => {
     const handleCallStart = () => {
-      // console.log("Vapi call has started...");
       toast.success("Research assistant connected. Please speak to continue.");
       setIsCallActive(true);
+      setIsVoiceLoading(false);
     };
 
-    const handleSpeechStart = () => {
-      // console.log("Assistant speech has started");
-    };
+    const handleSpeechStart = () => {};
 
-    const handleSpeechEnd = () => {
-      // console.log("Assistant speech has ended");
-    };
+    const handleSpeechEnd = () => {};
 
     const handleCallEnd = () => {
-      // console.log("Vapi call has ended...");
-      // console.log("Full Vapi conversation:", vapiConversationRef.current);
       toast.success("Research assistant call ended...");
       setIsCallActive(false);
+      setIsVoiceLoading(false);
     };
 
     const handleMessage = (message: any) => {
       try {
-        // console.log("Raw Vapi message:", message);
         if (message?.conversation) {
-          // console.log("Vapi conversation:", message.conversation);
           setVapiConversation(message.conversation);
           vapiConversationRef.current = message.conversation;
 
@@ -434,6 +418,7 @@ const DraftPage = () => {
       }
       toast.error(errorMessage);
       setIsCallActive(false);
+      setIsVoiceLoading(false);
       vapi.stop();
     };
 
@@ -464,9 +449,9 @@ const DraftPage = () => {
   };
 
   const handleVoiceAgentChat = async () => {
+    setIsVoiceLoading(true);
     try {
       const userName = user?.firstName || "User";
-      // console.log("Clerk user:", user);
       const conversationHistory = messages
         .slice(-6)
         .map((msg) =>
@@ -527,11 +512,6 @@ const DraftPage = () => {
         },
       };
 
-      // console.log("Starting Vapi call with options:", assistantOptions);
-      // console.log(
-      //   "🛠️ Final assistantOptions:",
-      //   JSON.stringify(assistantOptions, null, 2)
-      // );
       // @ts-ignore
       await vapi.start(assistantOptions);
     } catch (error: any) {
@@ -559,6 +539,7 @@ const DraftPage = () => {
           "Unknown Vapi error. Please check your API key or network connection.";
       }
       toast.error(errorMessage);
+      setIsVoiceLoading(false);
       vapi.stop();
     }
   };
@@ -566,7 +547,6 @@ const DraftPage = () => {
   const handleStopCall = () => {
     try {
       vapi.stop();
-      // console.log("Vapi call stopped manually");
       toast.info("Voice call stopped.");
     } catch (error) {
       console.error("Error stopping Vapi call:", error);
@@ -575,15 +555,9 @@ const DraftPage = () => {
   };
 
   const handleDraftResearchPaper = async () => {
+    setIsDraftLoading(true);
     try {
       const userName = user?.firstName || "User";
-      // console.log(
-      //   "Initiating research paper draft for chatId:",
-      //   chatId,
-      //   "by user:",
-      //   userName
-      // );
-
       const response = await fetch("/api/draft-research-paper", {
         method: "POST",
         headers: {
@@ -596,17 +570,17 @@ const DraftPage = () => {
         const errorData = await response.json();
         console.error("Error from draft-research-paper API:", errorData);
         toast.error(errorData.error || "Failed to generate research paper.");
+        setIsDraftLoading(false);
         return;
       }
 
       const data = await response.json();
-      // console.log("Research paper generated successfully:", data);
       toast.success("Research paper generated successfully!");
-      
       router.push(`/workspace/chat/${chatId}/research`);
     } catch (error) {
       console.error("Error in handleDraftResearchPaper:", error);
       toast.error("Failed to initiate research paper generation.");
+      setIsDraftLoading(false);
     }
   };
 
@@ -668,11 +642,35 @@ const DraftPage = () => {
                 <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-75 animate-ping" />
               )}
               <button
-                className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs md:text-base font-semibold md:px-6 md:py-3 p-2 rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 animate-glitter flex items-center gap-2"
+                className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs md:text-base font-semibold md:px-6 md:py-3 p-2 rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 animate-glitter flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleVoiceAgentChat}
-                disabled={isCallActive}
+                disabled={isCallActive || isVoiceLoading}
               >
-                {isCallActive ? (
+                {isVoiceLoading ? (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Loading...</span>
+                  </div>
+                ) : isCallActive ? (
                   <Bot className="h-5 w-5" />
                 ) : (
                   "Voice Agent Chat"
@@ -690,10 +688,37 @@ const DraftPage = () => {
               </button>
             )}
             <button
-              className="relative bg-white text-black text-xs md:text-base font-semibold p-2 md:px-6 md:py-3 rounded-lg shadow-lg hover:bg-gray-200 transition-all duration-300 border-2 border-gray-800 animate-pulse"
+              className="relative bg-white text-black text-xs md:text-base font-semibold p-2 md:px-6 md:py-3 rounded-lg shadow-lg hover:bg-gray-200 transition-all duration-300 border-2 border-gray-800 animate-pulse disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleDraftResearchPaper}
+              disabled={isDraftLoading}
             >
-              Draft a Research Paper
+              {isDraftLoading ? (
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-5 w-5 text-black"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>Loading...</span>
+                </div>
+              ) : (
+                "Draft a Research Paper"
+              )}
             </button>
           </div>
           <style jsx>{`
