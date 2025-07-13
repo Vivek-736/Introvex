@@ -11,6 +11,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
     if (!userName) {
       return NextResponse.json(
         { error: "userName is required" },
@@ -45,28 +46,34 @@ export async function POST(request: Request) {
     context = context.trim();
 
     const prompt = `
-      You are an expert research assistant tasked with drafting a comprehensive research paper in HTML format with embedded CSS, following the structure and style of the provided example. Use MathJax for accurate rendering of mathematical notation (e.g., GBM equations). Include Google Fonts (Roboto Serif) for a professional academic look. Output ONLY the complete HTML document with <style> tags for CSS, without any additional commentary, markdown code fences, or extraneous text such as "html" at the beginning of the output. Ensure the output starts with <!DOCTYPE html> and contains no prefixes or artifacts before the DOCTYPE.
+      You are an expert research assistant tasked with drafting a comprehensive research paper in HTML format with embedded CSS, based on the provided conversation context. Use MathJax for accurate rendering of mathematical notation if relevant to the topic. Include Google Fonts (Roboto Serif) for a professional academic look. Output ONLY the complete HTML document with <style> tags for CSS, without any additional commentary, markdown code fences, or extraneous text such as "html" at the beginning of the output. Ensure the output starts with <!DOCTYPE html> and contains no prefixes or artifacts before the DOCTYPE.
 
       The paper must follow this structure:
-      - Title: Relevant to Monte Carlo option pricing with variance reduction.
+      - Title: Derive a relevant title based on the conversation context.
       - Author: Use "${userName}".
-      - Date: Current date and time in IST (July 08, 2025, 06:52 PM IST).
-      - Abstract: 150–200 words summarizing purpose, methods, and findings.
-      - Introduction: Introduce option pricing, its significance, and objectives.
-      - Literature Review: Summarize relevant research on Monte Carlo methods and variance reduction.
-      - Methodology: Describe the Monte Carlo simulation approach, including the GBM equation S_t = S_0 e^((r - q - σ^2/2)t + σW_t).
-      - Results and Discussion: Analyze results with a table comparing methods (similar to Table 1 in the example).
+      - Date: Current date and time in IST (July 13, 2025, 05:09 PM IST).
+      - Abstract: 150–200 words summarizing purpose, methods, and findings based on the context.
+      - Introduction: Introduce the topic, its significance, and objectives, inferred from the context.
+      - Literature Review: Summarize relevant research related to the topic in the context.
+      - Methodology: Describe the approach or methods discussed in the context, including relevant equations (e.g., mathematical models) if applicable.
+      - Results and Discussion: Analyze findings with at least one table summarizing key results or comparisons.
       - Conclusion: Summarize key points and suggest future research.
-      - References: Use a simple unordered list for citations.
+      - References: Use a simple unordered list for citations, referencing works relevant to the context.
 
       Requirements:
       - Use semantic HTML5 tags (e.g., <h1>, <section>, <table>).
-      - Include a table with 4 rows comparing pricing methods (Standard MC, Antithetic Variates, Control Variates, Combined).
-      - Use MathJax CDN (https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js) for equations.
+      - Include at least one table with 4 rows comparing methods, approaches, or results relevant to the context.
+      - Use MathJax CDN (https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js) for equations if the context involves mathematical concepts.
       - Use Google Fonts (Roboto Serif) via CDN (https://fonts.googleapis.com/css2?family=Roboto+Serif:wght@400;700&display=swap).
       - Minimum length: ~1000–1200 words.
-      - Use a formal academic tone.
-      *** The above details are just for understanding, take the conversation context that will be provided in the request body and use it to draft the paper. ***
+      - Use a formal academic tone with professional spacing (e.g., 1.8 line height, 40px section margins, 10px paragraph margins).
+      - Include formulas if the context suggests mathematical or technical content.
+
+      CSS Styling:
+      - Use Roboto Serif for all text.
+      - Ensure professional spacing: 1.8 line height, 40px margins between sections, 10px between paragraphs.
+      - Style tables with clear borders, alternating row colors, and padding for readability.
+      - Center the title and apply consistent heading styles.
 
       Example HTML structure to follow:
       <!DOCTYPE html>
@@ -75,35 +82,37 @@ export async function POST(request: Request) {
         <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <link href="https://fonts.googleapis.com/css2?family=Roboto+Serif:wght@400;700&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Roboto Serif', serif; margin: 0; padding: 20px; line-height: 1.6; }
-          h1 { text-align: center; color: #333; }
-          h2 { color: #555; margin-top: 20px; }
-          .abstract { padding-left: 15px; }
-          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          .section { margin-bottom: 20px; }
+          body { font-family: 'Roboto Serif', serif; margin: 0; padding: 40px; line-height: 1.8; color: #333; }
+          h1 { text-align: center; color: #222; font-size: 2.2em; margin-bottom: 20px; }
+          h2 { color: #444; font-size: 1.6em; margin: 40px 0 20px; }
+          p { margin: 10px 0; }
+          .abstract { padding-left: 20px; border-left: 4px solid black; }
+          table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+          th, td { border: 1px solid #ccc; padding: 12px; text-align: left; }
+          th { background-color: #f5f5f5; font-weight: 700; }
+          tr:nth-child(even) { background-color: #fafafa; }
+          .section { margin-bottom: 40px; }
+          ul { margin: 20px 0; padding-left: 30px; }
+          li { margin-bottom: 10px; }
         </style>
       </head>
       <body>
-        <h1>...</h1>
-        <p><strong>Author:</strong> ...</p>
-        <p><strong>Date:</strong> ...</p>
-        <div class="abstract"><h2>Abstract</h2><p>...</p></div>
-        <div class="section"><h2>Introduction</h2><p>...</p></div>
-        <div class="section"><h2>Methodology</h2><p>\\( S_t = S_0 e^{(r - q - \\sigma^2/2)t + \\sigma W_t} \\)</p></div>
-        <div class="section"><h2>Results and Discussion</h2>
-          <table><tr><th>Method</th><th>Price</th><th>Standard Error</th></tr><tr><td>Standard MC</td><td>...</td><td>...</td></tr></table>
-        </div>
-        <div class="section"><h2>Conclusion</h2><p>...</p></div>
-        <div class="section"><h2>References</h2><ul><li>...</li></ul></div>
+        <h1>[Derived Title]</h1>
+        <p><strong>Author:</strong> ${userName}</p>
+        <p><strong>Date:</strong> July 13, 2025, 05:09 PM IST</p>
+        <div class="abstract"><h2>Abstract</h2><p>[Abstract content]</p></div>
+        <div class="section"><h2>Introduction</h2><p>[Introduction content]</p></div>
+        <div class="section"><h2>Methodology</h2><p>[Methodology content, include equations if relevant]</p></div>
+        <div class="section"><h2>Results and Discussion</h2><table><tr><th>Method</th><th>Metric</th><th>Value</th></tr><tr><td>[Method 1]</td><td>[Metric]</td><td>[Value]</td></tr></table></div>
+        <div class="section"><h2>Conclusion</h2><p>[Conclusion content]</p></div>
+        <div class="section"><h2>References</h2><ul><li>[Reference]</li></ul></div>
       </body>
       </html>
 
       Conversation context:
       ${context}
 
-      Draft the HTML paper now, ensuring no extraneous text like "html" appears before the DOCTYPE.
+      Draft the HTML paper now, ensuring no extraneous text appears before the DOCTYPE.
     `;
 
     const response = await fetch(

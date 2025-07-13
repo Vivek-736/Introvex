@@ -50,14 +50,18 @@ const ResearchPage = () => {
             <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
             <link href="https://fonts.googleapis.com/css2?family=Roboto+Serif:wght@400;700&display=swap" rel="stylesheet">
             <style>
-              body { font-family: 'Roboto Serif', serif; margin: 0; padding: 20px; line-height: 1.6; }
-              h1 { text-align: center; color: #333; }
-              h2 { color: #555; margin-top: 40px; }
-              .abstract { padding-left: 15px; }
-              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; }
-              .section { margin-bottom: 20px; margin-top: 40px; }
+              body { font-family: 'Roboto Serif', serif; margin: 0; padding: 40px; line-height: 1.8; color: #333; }
+              h1 { text-align: center; color: #222; font-size: 2.2em; margin-bottom: 20px; }
+              h2 { color: #444; font-size: 1.6em; margin: 40px 0 20px; }
+              p { margin: 10px 0; }
+              .abstract { padding-left: 20px; border-left: 4px solid #666; }
+              table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+              th, td { border: 1px solid #ccc; padding: 12px; text-align: left; }
+              th { background-color: #f5f5f5; font-weight: 700; }
+              tr:nth-child(even) { background-color: #fafafa; }
+              .section { margin-bottom: 40px; }
+              ul { margin: 20px 0; padding-left: 30px; }
+              li { margin-bottom: 10px; }
             </style>
           </head>
           <body>
