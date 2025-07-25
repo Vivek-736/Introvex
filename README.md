@@ -38,10 +38,6 @@ Introvex is an AI-powered platform designed specifically for researchers. It lev
     npm run dev
     ```
 
-## 🤝 Contributing
-
-Contributions are welcome in future but not now! In future open an issue or submit a pull request to help improve Introvex.
-
 ---
 
 > Empower your research journey with **Introvex**! 🚀
