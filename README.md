@@ -27,7 +27,7 @@ Introvex is an AI-powered platform designed specifically for researchers. It lev
 
 1. **Clone the repository**
     ```bash
-    git clone https://github.com/your-username/introvex.git
+    git clone https://github.com/Vivek-736/introvex.git
     ```
 2. **Install dependencies**
     ```bash
