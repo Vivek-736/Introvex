@@ -202,7 +202,7 @@ export default function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800/50 py-5 px-4 rounded-lg text-base font-medium transition-all duration-200">
               <UserButton />
-              <span className="ml-4">Profile</span>
+              <span className="ml-4">{user?.firstName}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
