@@ -8,7 +8,7 @@ import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
 import ChatButton from "@/components/workspaceUI/ChatButton";
 import { useUser } from "@clerk/nextjs";
-import { Import } from "lucide-react";
+import { Import, File } from "lucide-react";
 
 const ChatIdPage = () => {
   const params = useParams();
@@ -19,14 +19,12 @@ const ChatIdPage = () => {
   const chatId = chatIdFromParams || chatIdFromQuery;
 
   type Message = { sender: string; text: string; language?: string };
-  
   const [messages, setMessages] = useState<Message[]>([]);
+  const [pdfUrls, setPdfUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-
   const chatContainerRef = useRef<HTMLDivElement>(null);
-
   const { user } = useUser();
   const userEmail = user?.emailAddresses[0]?.emailAddress || "";
 
@@ -38,12 +36,10 @@ const ChatIdPage = () => {
         return;
       }
 
-      // console.log("Fetching chat with chatId:", chatId);
-
       try {
         const { data, error } = await supabase
           .from("Data")
-          .select("message")
+          .select("message, pdfUrl")
           .eq("chatId", chatId)
           .eq("userEmail", userEmail)
           .maybeSingle();
@@ -54,51 +50,56 @@ const ChatIdPage = () => {
           return;
         }
 
-        if (data && data.message) {
-          const messageString = data.message;
-          const allMessages = messageString.split(",,,,");
-          const processedMessages: Message[] = [];
+        if (data) {
+          if (data.pdfUrl) {
+            setPdfUrls(data.pdfUrl.split(","));
+          }
+          if (data.message) {
+            const messageString = data.message;
+            const allMessages = messageString.split(",,,,");
+            const processedMessages: Message[] = [];
 
-          for (let i = 0; i < allMessages.length; i += 2) {
-            const userText =
-              allMessages[i]?.trim().replace(/^User: /, "") || "";
-            const botText = allMessages[i + 1]?.trim().replace(/^ /, "") || "";
+            for (let i = 0; i < allMessages.length; i += 2) {
+              const userText =
+                allMessages[i]?.trim().replace(/^User: /, "") || "";
+              const botText = allMessages[i + 1]?.trim().replace(/^Assistant: /, "") || "";
 
-            if (userText) {
-              processedMessages.push({ sender: "user", text: userText });
-            }
-            if (botText) {
-              const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-              let lastIndex = 0;
-              let match;
+              if (userText) {
+                processedMessages.push({ sender: "user", text: userText });
+              }
+              if (botText) {
+                const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+                let lastIndex = 0;
+                let match;
 
-              while ((match = codeBlockRegex.exec(botText))) {
-                const [fullMatch, language, code] = match;
-                const beforeText = botText.slice(lastIndex, match.index).trim();
-                if (beforeText) {
+                while ((match = codeBlockRegex.exec(botText))) {
+                  const [fullMatch, language, code] = match;
+                  const beforeText = botText.slice(lastIndex, match.index).trim();
+                  if (beforeText) {
+                    processedMessages.push({
+                      sender: "bot",
+                      text: cleanText(beforeText),
+                    });
+                  }
                   processedMessages.push({
                     sender: "bot",
-                    text: cleanText(beforeText),
+                    text: code.trim(),
+                    language: language || "plaintext",
+                  });
+                  lastIndex = match.index + fullMatch.length;
+                }
+
+                const remainingText = botText.slice(lastIndex).trim();
+                if (remainingText) {
+                  processedMessages.push({
+                    sender: "bot",
+                    text: cleanText(remainingText),
                   });
                 }
-                processedMessages.push({
-                  sender: "bot",
-                  text: code.trim(),
-                  language: language || "plaintext",
-                });
-                lastIndex = match.index + fullMatch.length;
-              }
-
-              const remainingText = botText.slice(lastIndex).trim();
-              if (remainingText) {
-                processedMessages.push({
-                  sender: "bot",
-                  text: cleanText(remainingText),
-                });
               }
             }
+            setMessages(processedMessages);
           }
-          setMessages(processedMessages);
         }
       } catch (error) {
         console.error("Error in useEffect:", error);
@@ -108,7 +109,7 @@ const ChatIdPage = () => {
     };
 
     fetchChatData();
-  }, [chatId]);
+  }, [chatId, userEmail]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -128,10 +129,9 @@ const ChatIdPage = () => {
     setMessages((prev) => [...prev, newUserMessage]);
 
     try {
-      // console.log("Sending message with chatId:", chatId);
       const { data: currentData, error: fetchError } = await supabase
         .from("Data")
-        .select("message")
+        .select("message, pdfUrl")
         .eq("chatId", chatId)
         .maybeSingle();
 
@@ -141,13 +141,13 @@ const ChatIdPage = () => {
       }
 
       const currentMessage = currentData?.message || "";
+      const pdfUrls = currentData?.pdfUrl ? currentData.pdfUrl.split(",") : [];
       const geminiResponse = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, chatId }),
+        body: JSON.stringify({ message: input, chatId, pdfUrls }),
       });
       const data = await geminiResponse.json();
-      // console.log("Gemini API response:", data);
 
       if (!geminiResponse.ok) {
         throw new Error(`API error: ${data.error || "Unknown error"}`);
@@ -179,12 +179,6 @@ const ChatIdPage = () => {
       if (error) {
         console.error("Update error:", error.message);
         throw error;
-      }
-
-      if (updateData && updateData.length > 0) {
-        // console.log("Updated chat data:", updateData);
-      } else {
-        console.warn("No rows updated, possible chatId mismatch:", chatId);
       }
 
       const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -224,11 +218,7 @@ const ChatIdPage = () => {
       setMessages((prev) => [...prev, ...processedMessages]);
       setTimeout(() => Prism.highlightAll(), 0);
     } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error sending message:", error.message);
-      } else {
-        console.error("Error sending message:", JSON.stringify(error));
-      }
+      console.error("Error sending message:", error);
       setMessages((prev) => [
         ...prev,
         { sender: "bot", text: "Error: Unable to get response" },
@@ -254,7 +244,24 @@ const ChatIdPage = () => {
 
   return (
     <div className="min-h-screen w-full text-white bg-black flex flex-col items-center justify-center p-4 sm:p-10">
-      <div className="w-full max-w-4xl flex flex-col h-[88vh] rounded-lg shadow-lg">
+      <div className="w-full max-w-4xl flex flex-col h-[88vh] rounded-lg shadow-lg relative">
+        {pdfUrls.length > 0 && (
+          <div className="absolute top-4 left-4 flex flex-col gap-2">
+            {pdfUrls.map((url, index) => (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center ml-4 gap-2 text-sm text-gray-300 hover:text-white transition"
+                title="View PDF"
+              >
+                <File size={20} />
+                <span>PDF {index + 1}</span>
+              </a>
+            ))}
+          </div>
+        )}
         <div
           className="flex-1 overflow-y-auto px-4 pb-4 space-y-4"
           ref={chatContainerRef}

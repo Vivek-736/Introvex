@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.0",
     "@clerk/nextjs": "^6.20.1",
     "@hookform/resolvers": "^3.9.1",
     "@lottiefiles/dotlottie-react": "^0.14.1",
@@ -45,6 +46,7 @@
     "@supabase/supabase-js": "^2.50.0",
     "@unified-latex/unified-latex-util-to-string": "^1.8.3",
     "@vapi-ai/web": "^2.3.8",
+    "ai": "^5.0.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.2",
     "chrome-aws-lambda": "^10.1.0",

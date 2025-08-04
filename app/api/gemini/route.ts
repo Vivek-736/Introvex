@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/services/SupabaseClient";
+import { PDFDocument } from "pdf-lib";
 
 export async function POST(request: Request) {
   try {
-    const { message, chatId } = await request.json();
-    // console.log("Received request:", { message, chatId });
+    const { message, chatId, pdfUrls } = await request.json();
 
-    if (!message) {
+    if (!message && (!pdfUrls || pdfUrls.length === 0)) {
       return NextResponse.json(
-        { error: "Message is required" },
+        { error: "Message or PDF URLs are required" },
         { status: 400 }
       );
     }
+
     if (!chatId) {
       return NextResponse.json(
         { error: "chatId is required" },
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
     const { data: existingData, error: fetchError } = await supabase
       .from("Data")
-      .select("message")
+      .select("message, pdfUrl")
       .eq("chatId", chatId)
       .maybeSingle();
 
@@ -31,9 +32,35 @@ export async function POST(request: Request) {
     }
 
     const currentMessage = existingData?.message || "";
-    const fullContext = `${currentMessage}\nUser: ${message}`.trim();
+    let fullContext = currentMessage ? `${currentMessage}\n` : "";
 
-    // console.log("Sending to Gemini with full context:", fullContext);
+    let pdfContent = "";
+    if (pdfUrls && pdfUrls.length > 0) {
+      for (const url of pdfUrls) {
+        try {
+          const response = await fetch(url);
+          const arrayBuffer = await response.arrayBuffer();
+          const pdfDoc = await PDFDocument.load(arrayBuffer);
+          const pages = pdfDoc.getPages();
+          let text = "";
+          for (const page of pages) {
+            text += await page
+              .getTextContent()
+              .then((content: any) =>
+                content.items.map((item: any) => item.str).join(" ")
+              );
+          }
+          pdfContent += `\nPDF Content: ${text.trim()}`;
+        } catch (error) {
+          console.error(`Error processing PDF ${url}:`, error);
+        }
+      }
+      fullContext += pdfContent;
+    }
+
+    if (message) {
+      fullContext += `\nUser: ${message}`.trim();
+    }
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBUjsjCQomz4PRKpNs1PZUq3emp_V7Y-nw`,
@@ -63,8 +90,6 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    // console.log("Raw Gemini response:", data);
-
     const botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!botResponse || typeof botResponse !== "string") {
       console.warn("Invalid bot response:", data);

@@ -7,24 +7,97 @@ import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/configs/firebaseConfigs";
+import { Upload } from "lucide-react";
 
 const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const router = useRouter();
   const { user } = useUser();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleSend = async () => {
-    if (input.trim() === "") return;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      setFiles(selectedFiles);
+      await uploadFiles(selectedFiles);
+    }
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    if (!user) {
+      toast.error("User not authenticated");
+      return;
+    }
     setLoading(true);
     const chatId = uuidv4();
     const userEmail = user?.emailAddresses[0]?.emailAddress;
+    const pdfUrls: string[] = [];
 
     try {
+      for (const file of files) {
+        if (file.type !== "application/pdf") {
+          toast.error("Only PDF files are allowed");
+          continue;
+        }
+        const storageRef = ref(storage, `pdfs/${chatId}/${file.name}`);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        pdfUrls.push(downloadURL);
+      }
+
+      if (pdfUrls.length > 0) {
+        const { error } = await supabase.from("Data").insert({
+          created_at: new Date().toISOString(),
+          userEmail,
+          title: input || "File Upload",
+          message: "",
+          chatId,
+          pdfUrl: pdfUrls.join(","),
+        });
+
+        if (error) throw error;
+        toast.success("Files uploaded successfully!");
+        router.push(`/workspace/chat/${chatId}`);
+      }
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      toast.error("Failed to upload files");
+    } finally {
+      setLoading(false);
+      setFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleSend = async () => {
+    if (input.trim() === "" && files.length === 0) return;
+    setLoading(true);
+    const chatId = uuidv4();
+    const userEmail = user?.emailAddresses[0]?.emailAddress;
+    const pdfUrls: string[] = [];
+
+    try {
+      if (files.length > 0) {
+        for (const file of files) {
+          if (file.type !== "application/pdf") {
+            toast.error("Only PDF files are allowed");
+            continue;
+          }
+          const storageRef = ref(storage, `pdfs/${chatId}/${file.name}`);
+          await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(storageRef);
+          pdfUrls.push(downloadURL);
+        }
+      }
+
       const geminiResponse = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, chatId }),
+        body: JSON.stringify({ message: input, chatId, pdfUrls }),
       });
 
       const data = await geminiResponse.json();
@@ -47,25 +120,23 @@ const Chat = () => {
         .insert({
           created_at: new Date().toISOString(),
           userEmail,
-          title: input,
+          title: input || "File Upload",
           message: messageString,
           chatId,
+          pdfUrl: pdfUrls.length > 0 ? pdfUrls.join(",") : null,
         })
         .select();
 
       if (error) throw error;
-
-      // console.log("Inserted chat data:", insertedData);
       router.push(`/workspace/chat/${chatId}`);
     } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error sending message:", error.message);
-      } else {
-        console.error("Error sending message:", error);
-      }
+      console.error("Error sending message:", error);
+      toast.error("Failed to process request");
     } finally {
       setLoading(false);
       setInput("");
+      setFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -92,6 +163,23 @@ const Chat = () => {
             </div>
             <div className="options">
               <div className="btns-add">
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                  ref={fileInputRef}
+                  disabled={loading}
+                />
+                <button
+                  className="btn-upload"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  title="Upload PDFs"
+                >
+                  <Upload size={24} />
+                </button>
               </div>
               <button
                 className="btn-submit"
@@ -248,6 +336,36 @@ const StyledWrapper = styled.div`
         cursor: not-allowed;
         transform: none;
       }
+    }
+  }
+
+  .btn-upload {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background-image: linear-gradient(to top, #292929, #555555, #292929);
+    border-radius: 12px;
+    box-shadow: inset 0 6px 2px -4px rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    border: none;
+    outline: none;
+    transition: all 0.15s ease;
+
+    & svg {
+      width: 24px;
+      height: 24px;
+      color: #8b8b8b;
+      transition: all 0.3s ease;
+    }
+    &:hover svg {
+      color: #f3f6fd;
+      filter: drop-shadow(0 0 5px #ffffff);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
     }
   }
 
