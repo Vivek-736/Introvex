@@ -1,86 +1,14 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/services/SupabaseClient";
+import { processMultiplePDFs } from "@/lib/pdfProcessor";
 
-async function extractPDFText(pdfUrl: string): Promise<string> {
-  try {
-    console.log(`🔍 Attempting to extract text from: ${pdfUrl}`);
-    
-    const response = await fetch(pdfUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response.status}`);
-    }
-    
-    const arrayBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const pdfString = new TextDecoder('latin1').decode(uint8Array);
-    
-    let extractedText = "";
-    
-    const textRegex = /\(([^)]+)\)/g;
-    let match;
-    const foundTexts = [];
-    
-    while ((match = textRegex.exec(pdfString)) !== null) {
-      const text = match[1]
-        .replace(/\\n/g, ' ')
-        .replace(/\\r/g, ' ')
-        .replace(/\\t/g, ' ')
-        .replace(/\\\(/g, '(')
-        .replace(/\\\)/g, ')')
-        .replace(/\\\\/g, '\\');
-      
-      if (text.length > 2 && /[a-zA-Z]/.test(text)) {
-        foundTexts.push(text);
-      }
-    }
-
-    // @ts-ignore
-    const textObjectRegex = /BT\s+(.*?)\s+ET/gs;
-    const textObjects = pdfString.match(textObjectRegex) || [];
-    
-    textObjects.forEach(obj => {
-      const showTextRegex = /\(([^)]*)\)\s*Tj/g;
-      let objMatch;
-      while ((objMatch = showTextRegex.exec(obj)) !== null) {
-        const text = objMatch[1].replace(/\\n/g, ' ').replace(/\\r/g, ' ');
-        if (text.length > 2 && /[a-zA-Z]/.test(text)) {
-          foundTexts.push(text);
-        }
-      }
-    });
-    
-    extractedText = foundTexts.join(' ').trim();
-
-    extractedText = extractedText
-      .replace(/\s+/g, ' ')
-      .replace(/[^\w\s.,!?;:()"'\-]/g, '')
-      .substring(0, 20000);
-    
-    console.log(`✅ Extracted ${extractedText.length} characters from PDF`);
-    console.log(`📄 First 200 chars: ${extractedText.substring(0, 200)}...`);
-    
-    return extractedText || "Could not extract readable text from this PDF";
-    
-  } catch (error) {
-    console.error(`❌ Error extracting PDF text:`, error);
-    return `Error processing PDF: ${error instanceof Error ? error.message : 'Unknown error'}`;
-  }
-}
+export const runtime = "edge";
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    console.log("🚀 RAW REQUEST BODY:", JSON.stringify(body, null, 2));
-    
-    const { message, chatId, pdfUrls } = body;
+  const startTime = Date.now();
 
-    console.log("📋 PARSED VALUES:");
-    console.log("- message:", message);
-    console.log("- chatId:", chatId);
-    console.log("- pdfUrls:", pdfUrls);
-    console.log("- pdfUrls type:", typeof pdfUrls);
-    console.log("- pdfUrls length:", pdfUrls?.length);
+  try {
+    const { message, chatId, pdfUrls } = await request.json();
 
     if (!message && (!pdfUrls || pdfUrls.length === 0)) {
       return NextResponse.json(
@@ -96,7 +24,12 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("📚 Fetching chat data from database...");
+    console.log(
+      `[${chatId}] Processing request - Message: ${
+        message ? "Yes" : "No"
+      }, PDFs: ${pdfUrls?.length || 0}`
+    );
+
     const { data: existingData, error: fetchError } = await supabase
       .from("Data")
       .select("message, pdfUrl")
@@ -104,111 +37,278 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (fetchError) {
-      console.error("❌ Database error:", fetchError);
-      throw new Error(fetchError.message);
+      console.error(`[${chatId}] Database fetch error:`, fetchError.message);
+      return NextResponse.json(
+        { error: "Failed to fetch chat history" },
+        { status: 500 }
+      );
     }
-
-    console.log("💾 DATABASE DATA:");
-    console.log("- existingData:", existingData);
-    console.log("- existingData.pdfUrl:", existingData?.pdfUrl);
 
     let context = "";
     const existingMessages = existingData?.message || "";
 
     if (existingMessages) {
-      const messageHistory = existingMessages.split(",,,,").slice(-8);
-      context += "=== Recent Conversation ===\n";
-      messageHistory.forEach((msg: string) => {
-        if (msg.trim()) context += msg.trim() + "\n";
-      });
-      context += "\n";
-    }
-
-    let pdfUrlsToProcess = [];
-    
-    if (pdfUrls && Array.isArray(pdfUrls) && pdfUrls.length > 0) {
-      pdfUrlsToProcess = pdfUrls.filter(url => url && url.trim());
-      console.log("📎 Using PDFs from request:", pdfUrlsToProcess);
-    } else if (existingData?.pdfUrl) {
-      pdfUrlsToProcess = existingData.pdfUrl.split(",").filter((url: string) => url && url.trim());
-      console.log("📎 Using PDFs from database:", pdfUrlsToProcess);
-    }
-
-    console.log(`🔢 Total PDFs to process: ${pdfUrlsToProcess.length}`);
-
-    if (pdfUrlsToProcess.length > 0) {
-      context += "=== Document Content ===\n";
-      
-      for (let i = 0; i < pdfUrlsToProcess.length; i++) {
-        const url = pdfUrlsToProcess[i];
-        console.log(`📄 Processing PDF ${i + 1}/${pdfUrlsToProcess.length}: ${url}`);
-        
-        const pdfText = await extractPDFText(url);
-        context += `--- PDF ${i + 1} ---\n${pdfText}\n\n`;
+      const messageHistory = existingMessages.split(",,,,").slice(-12);
+      if (messageHistory.length > 0) {
+        context += "=== Conversation History ===\n";
+        messageHistory.forEach((msg: string, index: number) => {
+          if (msg.trim()) {
+            // Clean up the message format
+            const cleanMsg = msg.trim().replace(/^(User|Assistant): /, "");
+            const prefix = index % 2 === 0 ? "User" : "Assistant";
+            context += `${prefix}: ${cleanMsg}\n`;
+          }
+        });
+        context += "\n";
       }
     }
 
-    if (message) {
-      context += "=== Current Question ===\n";
-      context += message + "\n\n";
+    let pdfProcessingTime = 0;
+    if (pdfUrls && pdfUrls.length > 0) {
+      const pdfStartTime = Date.now();
+      console.log(`[${chatId}] Processing ${pdfUrls.length} PDF(s)...`);
+
+      try {
+        const pdfContent = await processMultiplePDFs(pdfUrls);
+        pdfProcessingTime = Date.now() - pdfStartTime;
+
+        if (pdfContent.trim()) {
+          context += "=== Document Content ===\n";
+          context += pdfContent;
+          context += "\n";
+          console.log(
+            `[${chatId}] PDF processing completed in ${pdfProcessingTime}ms - ${pdfContent.length} chars extracted`
+          );
+        } else {
+          context += "=== Document Content ===\n";
+          context +=
+            "⚠️ No readable text could be extracted from the provided PDF documents.\n\n";
+          console.warn(`[${chatId}] No text extracted from PDFs`);
+        }
+      } catch (error) {
+        pdfProcessingTime = Date.now() - pdfStartTime;
+        console.error(`[${chatId}] PDF processing failed:`, error);
+        context += "=== Document Content ===\n";
+        context += "❌ Error occurred while processing PDF documents.\n\n";
+      }
+    }
+
+    if (message?.trim()) {
+      context += "=== Current User Message ===\n";
+      context += `${message.trim()}\n\n`;
     }
 
     context += "=== Instructions ===\n";
-    context += "Please provide a helpful response. If the question relates to the document content above, use specific information from those documents. Be conversational and informative.\n\n";
+    context += "Please provide a helpful and accurate response. ";
+    if (pdfUrls && pdfUrls.length > 0) {
+      context +=
+        "If the user's question relates to the document content above, use specific information from those documents. If you cannot find relevant information in the documents, please state this clearly. ";
+    }
+    context +=
+      "Be conversational, informative, and cite specific details when available.\n\n";
 
-    console.log(`📏 Total context length: ${context.length} characters`);
-    console.log(`📝 Context preview (first 500 chars):\n${context.substring(0, 500)}...`);
+    const maxContextLength = 28000;
+    if (context.length > maxContextLength) {
+      console.warn(
+        `[${chatId}] Context too long (${context.length}), truncating...`
+      );
+      const parts = context.split("=== Document Content ===");
+      if (parts.length > 1) {
+        const documentContent = parts[1].split(
+          "=== Current User Message ==="
+        )[0];
+        const truncatedDoc = documentContent.substring(
+          0,
+          maxContextLength * 0.6
+        );
+        context =
+          parts[0] +
+          "=== Document Content ===\n" +
+          truncatedDoc +
+          "\n[Content truncated]\n\n" +
+          (parts[1].includes("=== Current User Message ===")
+            ? "=== Current User Message ===" +
+              parts[1].split("=== Current User Message ===")[1]
+            : "");
+      } else {
+        context =
+          context.substring(0, maxContextLength) + "\n[Context truncated]";
+      }
+    }
 
-    console.log("🤖 Calling Gemini API...");
-    const response = await fetch(
+    console.log(`[${chatId}] Context prepared: ${context.length} characters`);
+
+    const geminiStartTime = Date.now();
+    const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBUjsjCQomz4PRKpNs1PZUq3emp_V7Y-nw`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: context }] }],
+          contents: [
+            {
+              parts: [{ text: context }],
+            },
+          ],
           generationConfig: {
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
             maxOutputTokens: 8192,
           },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE",
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE",
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE",
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE",
+            },
+          ],
         }),
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ Gemini API error:", response.status, errorText);
-      throw new Error(`Gemini API error: ${response.status}`);
+    const geminiTime = Date.now() - geminiStartTime;
+
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error(
+        `[${chatId}] Gemini API error ${geminiResponse.status}:`,
+        errorText
+      );
+
+      // Handle specific error cases
+      if (geminiResponse.status === 429) {
+        return NextResponse.json(
+          { error: "Rate limit exceeded. Please try again in a moment." },
+          { status: 429 }
+        );
+      } else if (geminiResponse.status === 400) {
+        return NextResponse.json(
+          { error: "Invalid request format. Please try again." },
+          { status: 400 }
+        );
+      } else {
+        return NextResponse.json(
+          { error: "AI service temporarily unavailable. Please try again." },
+          { status: 502 }
+        );
+      }
     }
 
-    const data = await response.json();
-    const botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const responseData = await geminiResponse.json();
 
-    if (!botResponse) {
-      console.error("❌ No response from Gemini:", data);
-      throw new Error("No response from Gemini");
+    if (!responseData.candidates?.length) {
+      console.error(`[${chatId}] Invalid response structure:`, responseData);
+      return NextResponse.json(
+        { error: "Invalid response from AI service" },
+        { status: 502 }
+      );
     }
 
-    console.log(`✅ Generated response: ${botResponse.length} characters`);
-    console.log(`📤 Response preview: ${botResponse.substring(0, 200)}...`);
+    const candidate = responseData.candidates[0];
+    if (!candidate.content?.parts?.length) {
+      console.error(`[${chatId}] No content in response:`, candidate);
+      return NextResponse.json(
+        { error: "Empty response from AI service" },
+        { status: 502 }
+      );
+    }
+
+    const botResponse = candidate.content.parts[0].text;
+
+    if (
+      !botResponse ||
+      typeof botResponse !== "string" ||
+      !botResponse.trim()
+    ) {
+      console.error(`[${chatId}] Invalid bot response:`, botResponse);
+      return NextResponse.json(
+        { error: "Invalid response content from AI service" },
+        { status: 502 }
+      );
+    }
+
+    const totalTime = Date.now() - startTime;
+    console.log(
+      `[${chatId}] Request completed in ${totalTime}ms (PDF: ${pdfProcessingTime}ms, Gemini: ${geminiTime}ms)`
+    );
+    console.log(
+      `[${chatId}] Response length: ${botResponse.trim().length} characters`
+    );
 
     return NextResponse.json({
-      response: botResponse,
-      debug: {
-        pdfUrlsReceived: pdfUrls?.length || 0,
-        pdfUrlsFromDb: existingData?.pdfUrl ? existingData.pdfUrl.split(",").length : 0,
-        pdfUrlsProcessed: pdfUrlsToProcess.length,
+      response: botResponse.trim(),
+      metadata: {
+        processingTime: totalTime,
+        pdfProcessingTime,
+        geminiResponseTime: geminiTime,
         contextLength: context.length,
-      }
+        pdfCount: pdfUrls?.length || 0,
+        responseLength: botResponse.trim().length,
+      },
     });
-
   } catch (error) {
-    console.error("💥 FATAL ERROR:", error);
+    const totalTime = Date.now() - startTime;
+    let chatId = "unknown";
+    try {
+      const body = await request.json();
+      chatId = body?.chatId || "unknown";
+    } catch {}
+    // @ts-ignore
+    console.error(`[${chatId}] Error after ${totalTime}ms:`,
+      error
+    );
+
+    let errorMessage = "An unexpected error occurred";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+
+      if (message.includes("fetch") || message.includes("network")) {
+        errorMessage =
+          "Network error. Please check your connection and try again.";
+        statusCode = 503;
+      } else if (message.includes("timeout")) {
+        errorMessage = "Request timed out. Please try again.";
+        statusCode = 408;
+      } else if (
+        message.includes("api_key") ||
+        message.includes("unauthorized")
+      ) {
+        errorMessage = "Service configuration error";
+        statusCode = 500;
+      } else if (message.includes("too large") || message.includes("token")) {
+        errorMessage = "Request too large. Please try with shorter content.";
+        statusCode = 413;
+      } else {
+        errorMessage = error.message;
+      }
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: errorMessage,
+        metadata: {
+          processingTime: totalTime,
+          errorType:
+            error instanceof Error ? error.constructor.name : "UnknownError",
+        },
+      },
+      { status: statusCode }
     );
   }
 }
