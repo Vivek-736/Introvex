@@ -56,7 +56,9 @@ const ChatIdPage = () => {
 
         if (data) {
           if (data.pdfUrl) {
-            const urls = data.pdfUrl.split(",").filter((url: any) => url.trim());
+            const urls = data.pdfUrl
+              .split(",")
+              .filter((url: any) => url.trim());
             setPdfUrls(urls);
             if (urls.length > 0) {
               setPdfProcessingStatus("success");
@@ -313,7 +315,7 @@ const ChatIdPage = () => {
   }
 
   return (
-    <div className="min-h-screen w-full text-white bg-black flex flex-col items-center justify-center p-4 sm:p-10">
+    <div className="md:min-h-screen min-h-[60vh] w-full text-white bg-black flex flex-col items-center justify-center p-4 sm:p-10">
       <div className="w-full max-w-4xl flex flex-col h-[88vh] rounded-lg shadow-lg relative">
         {pdfUrls.length > 0 && (
           <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -381,8 +383,8 @@ const ChatIdPage = () => {
           {sending && <CustomLoading />}
         </div>
 
-        <div className="p-4 rounded-lg border-t border-gray-700 bg-gray-900">
-          <div className="flex items-center bg-gray-800 rounded-xl p-3 shadow-inner">
+        <div className="p-4 rounded-2xl border-t border-gray-700 bg-gray-900/80 backdrop-blur-sm">
+          <div className="flex items-center bg-gray-800/60 backdrop-blur-md rounded-2xl px-4 py-3 shadow-inner shadow-black/40">
             <textarea
               placeholder="Type your message... ✦"
               value={input}
@@ -394,16 +396,17 @@ const ChatIdPage = () => {
                 }
               }}
               disabled={sending}
-              className="flex-1 p-3 text-xs bg-transparent border-none text-white sm:text-sm resize-none h-14 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-lg"
+              className="flex-1 text-sm sm:text-base h-14 resize-none px-4 py-3 bg-transparent border-none text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-xl"
             />
+            
             <div className="flex items-center gap-3 ml-3">
               <button
-                className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm px-4 py-2 rounded-lg shadow-md hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
+                className="relative px-4 py-2 text-sm font-medium text-white rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
                 onClick={handleDraftRedirect}
               >
                 <span className="md:block hidden">Import chat</span>
                 <Import className="md:hidden" />
-                <span className="absolute inset-0 glitter"></span>
+                <span className="absolute inset-0 glitter rounded-xl"></span>
               </button>
               <ChatButton
                 text={sending ? ".........." : "Send"}
@@ -412,12 +415,14 @@ const ChatIdPage = () => {
               />
             </div>
           </div>
+
           <style jsx>{`
             @keyframes glitter {
-              0% {
+              0%,
+              100% {
                 background: radial-gradient(
                   circle,
-                  rgba(255, 255, 255, 0.3) 0%,
+                  rgba(255, 255, 255, 0.2) 0%,
                   transparent 70%
                 );
                 background-size: 200% 200%;
@@ -426,26 +431,19 @@ const ChatIdPage = () => {
               50% {
                 background: radial-gradient(
                   circle,
-                  rgba(255, 255, 255, 0.5) 0%,
+                  rgba(255, 255, 255, 0.35) 0%,
                   transparent 70%
                 );
                 background-size: 150% 150%;
                 background-position: 100% 100%;
               }
-              100% {
-                background: radial-gradient(
-                  circle,
-                  rgba(255, 255, 255, 0.3) 0%,
-                  transparent 70%
-                );
-                background-size: 200% 200%;
-                background-position: 0% 0%;
-              }
             }
             .glitter {
               animation: glitter 1.5s infinite;
               pointer-events: none;
-              mix-blend-mode: overlay;
+              mix-blend-mode: soft-light;
+              border-radius: inherit;
+              opacity: 0.4;
             }
           `}</style>
         </div>
