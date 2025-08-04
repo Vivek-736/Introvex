@@ -17,8 +17,8 @@ const CustomLoading = () => {
             <span className="text-xl font-semibold bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 bg-clip-text text-transparent animate-pulse">
               Introvex is thinking
             </span>
-            <span className="text-purple-500 text-3xl font-bold animate-pulse">...</span>
           </div>
+          
           <div className="flex space-x-2 ml-2">
             <div className="w-3 h-3 rounded-full bg-purple-500 animate-ping" />
             <div className="w-3 h-3 rounded-full bg-purple-500 animate-ping delay-150" />
