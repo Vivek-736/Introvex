@@ -414,7 +414,7 @@ const ChatIdPage = () => {
   }
 
   return (
-    <div className="min-h-screen w-full text-white bg-gradient-to-br from-black via-purple-950/20 to-black">
+    <div className="min-h-screen md:mt-0 -mt-4 w-full text-white bg-gradient-to-br from-black via-purple-950/20 to-black">
       {/* Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
@@ -425,7 +425,7 @@ const ChatIdPage = () => {
       <div className="relative flex flex-col items-center justify-center p-4 sm:p-10 min-h-screen">
         <div className="w-full max-w-6xl flex flex-col h-[88vh] rounded-3xl shadow-2xl backdrop-blur-xl bg-black/40 border border-purple-500/20 relative overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-purple-500/20 bg-gradient-to-r from-purple-900/20 to-indigo-900/20">
+          <div className="flex items-center justify-between p-4 py-2 border-b border-purple-500/20 bg-gradient-to-r from-purple-900/20 to-indigo-900/20">
             <div className="flex items-center gap-4">
               <div className="w-3 h-3 bg-red-400 rounded-full"></div>
               <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
@@ -444,7 +444,7 @@ const ChatIdPage = () => {
                 disabled={sending}
               >
                 <Sparkles size={16} />
-                <span className="text-sm font-medium">AI Chat</span>
+                <span className="text-sm font-medium md:block hidden">AI Chat</span>
               </button>
               <button
                 onClick={() => setSearchMode(true)}
@@ -456,7 +456,7 @@ const ChatIdPage = () => {
                 disabled={sending}
               >
                 <Globe size={16} />
-                <span className="text-sm font-medium">Web Search</span>
+                <span className="text-sm font-medium md:block hidden">Web Search</span>
               </button>
             </div>
 
@@ -636,44 +636,8 @@ const ChatIdPage = () => {
                   onClick={handleSend}
                   disabled={sending || (!input.trim() && files.length === 0)}
                 />
-              </div>
-            </div>
 
-            {/* Quick Actions */}
-            <div className="flex flex-wrap gap-2 mt-4 justify-center">
-              <button
-                onClick={() => {
-                  const prompt = searchMode
-                    ? "What are the latest developments in artificial intelligence?"
-                    : "Analyze the content and provide key insights";
-                  setInput(prompt);
-                }}
-                className="px-3 py-2 text-xs bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg transition-all duration-200 text-purple-200"
-              >
-                {searchMode ? "Latest AI developments" : "Analyze content"}
-              </button>
-              <button
-                onClick={() => {
-                  const prompt = searchMode
-                    ? "Search for recent news about technology trends"
-                    : "Summarize the main points";
-                  setInput(prompt);
-                }}
-                className="px-3 py-2 text-xs bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg transition-all duration-200 text-purple-200"
-              >
-                {searchMode ? "Tech trends news" : "Summarize"}
-              </button>
-              <button
-                onClick={() => {
-                  const prompt = searchMode
-                    ? "Find information about best practices in software development"
-                    : "Explain this in simple terms";
-                  setInput(prompt);
-                }}
-                className="px-3 py-2 text-xs bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg transition-all duration-200 text-purple-200"
-              >
-                {searchMode ? "Dev best practices" : "Simple explanation"}
-              </button>
+              </div>
             </div>
           </div>
         </div>
