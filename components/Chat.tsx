@@ -264,7 +264,7 @@ const Chat = () => {
               toast.success("Prompt copied to clipboard!");
             }}
           >
-            {searchMode ? "Latest AI trends" : "Explain in simple terms"}
+            {searchMode ? "Latest prominent AI trends" : "Explain in simple terms"}
           </span>
         </div>
       </div>
