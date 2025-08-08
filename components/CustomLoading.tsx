@@ -14,8 +14,8 @@ const CustomLoading = () => {
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex space-x-1 items-center">
-            <span className="text-xl font-semibold bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 bg-clip-text text-transparent animate-pulse">
-              Introvex is thinking
+            <span className="text-sm font-semibold bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 bg-clip-text text-transparent animate-pulse">
+              Thinking
             </span>
           </div>
           
