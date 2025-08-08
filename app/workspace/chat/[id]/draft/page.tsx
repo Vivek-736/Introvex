@@ -8,7 +8,7 @@ import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
 import { useVapi } from "@/context/VapiContext";
 import { useUser } from "@clerk/nextjs";
-import { Bot, Phone } from "lucide-react";
+import { Bot, Phone, FileText, Mic, MicOff, Copy } from "lucide-react";
 
 const DraftPage = () => {
   const params = useParams();
@@ -72,7 +72,7 @@ const DraftPage = () => {
             }
 
             if (botText) {
-              const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+              const codeBlockRegex = /``````/g;
               let lastIndex = 0;
               let match;
 
@@ -119,7 +119,7 @@ const DraftPage = () => {
           const vapiChat = data.vapi_chat;
           vapiChat.forEach((msg: { Assistant: string; user: string }) => {
             if (msg.Assistant) {
-              const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+              const codeBlockRegex = /``````/g;
               let lastIndex = 0;
               let match;
 
@@ -295,7 +295,7 @@ const DraftPage = () => {
 
                 const sender = msg.role === "user" ? "user" : "bot";
                 const text = msg.content.trim();
-                const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+                const codeBlockRegex = /``````/g;
                 let lastIndex = 0;
                 let match;
 
@@ -503,7 +503,7 @@ const DraftPage = () => {
 
                   Speak clearly and professionally, with a warm and approachable manner.
                   Keep responses concise, easy to follow, and conversational, avoiding lengthy or robotic answers suitable for voice chat.
-                  If the user requests code snippets in specific programming languages, do not read them aloud. Instead, inform them that there’s code related to their research they can explore via a Google search, or assure them it will be included in the final draft, so they need not worry.
+                  If the user requests code snippets in specific programming languages, do not read them aloud. Instead, inform them that there's code related to their research they can explore via a Google search, or assure them it will be included in the final draft, so they need not worry.
                   When discussing formatting, provide brief examples (e.g., APA, MLA, or LaTeX) without overwhelming detail, and offer to clarify if needed.
                   Guidelines:
 
@@ -595,208 +595,241 @@ const DraftPage = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full text-white bg-gradient-to-br from-black via-purple-950/20 to-black flex items-center justify-center">
+        <CustomLoading />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen w-full text-white bg-black flex flex-col items-center justify-center p-4 sm:p-10">
-      <div className="w-full max-w-4xl flex flex-col h-[88vh] rounded-lg shadow-lg">
-        <div
-          className="flex-1 overflow-y-auto px-4 pb-4 space-y-4"
-          ref={chatContainerRef}
-        >
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex w-full p-4 ${
-                msg.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+    <div className="min-h-screen md:mt-0 -mt-4 w-full text-white bg-gradient-to-br from-black via-purple-950/20 to-black">
+      {/* Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[100px]"></div>
+      </div>
+
+      <div className="relative flex flex-col items-center justify-center p-4 sm:p-10 min-h-screen">
+        <div className="w-full max-w-6xl flex flex-col h-[88vh] rounded-3xl shadow-2xl backdrop-blur-xl bg-black/40 border border-purple-500/20 relative overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 py-2 border-b border-purple-500/20 bg-gradient-to-r from-purple-900/20 to-indigo-900/20">
+            <div className="flex items-center gap-4">
+              <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+              <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+            </div>
+
+            {/* Title */}
+            <div className="flex items-center gap-3">
+              <FileText size={20} className="text-purple-300" />
+              <span className="text-lg font-medium text-purple-200">
+                Research Draft
+              </span>
+            </div>
+
+            {/* Voice Status */}
+            {isCallActive && (
+              <div className="flex items-center gap-2 bg-green-500/20 px-3 py-2 rounded-xl border border-green-500/30">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-green-200">Voice Active</span>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Messages */}
+          <div
+            className="flex-1 overflow-y-auto px-6 py-4 space-y-6 scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-transparent"
+            ref={chatContainerRef}
+          >
+            {messages.map((msg, index) => (
               <div
-                className={`max-w-[70%] p-4 rounded-lg shadow-md ${
-                  msg.sender === "user"
-                    ? "bg-white text-black"
-                    : "bg-gray-800 text-white"
+                key={index}
+                className={`flex w-full ${
+                  msg.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {msg.language ? (
-                  <div className="relative">
-                    <pre
-                      className={`language-${msg.language} bg-gray-950 rounded-lg p-4 overflow-x-auto md:text-sm text-xs font-mono max-h-96`}
-                    >
-                      <code className={`language-${msg.language}`}>
-                        {msg.text}
-                      </code>
-                    </pre>
-                    <button
-                      className="absolute top-2 right-2 bg-gray-700 text-white text-xs px-2 py-1 rounded hover:bg-gray-600 transition"
-                      onClick={() => handleCopy(msg.text)}
-                      title="Copy code"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                ) : isLoading && index === messages.length - 1 ? (
-                  <p>Loading...</p>
-                ) : (
-                  <p className="md:text-base text-xs leading-relaxed whitespace-pre-wrap">
-                    {msg.text}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-          {isLoading && <CustomLoading />}
-        </div>
+                <div
+                  className={`max-w-[75%] rounded-2xl shadow-xl backdrop-blur-sm border transition-all duration-300 hover:shadow-2xl ${
+                    msg.sender === "user"
+                      ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white border-purple-400/30 shadow-purple-500/20"
+                      : "bg-gradient-to-br from-gray-900/80 to-black/80 border-gray-600/30 shadow-gray-500/20"
+                  }`}
+                >
+                  {/* Message Header for bot messages */}
+                  {msg.sender === "bot" && (
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                      <Bot size={16} className="text-purple-300" />
+                      <span className="text-xs font-medium text-purple-300 uppercase tracking-wide">
+                        Research Assistant
+                      </span>
+                    </div>
+                  )}
 
-        <div className="p-4 rounded-lg border-t border-gray-700 bg-gray-900">
-          <div className="flex items-center justify-center gap-6">
-            <div className="relative">
-              {isCallActive && (
-                <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-75 animate-ping" />
-              )}
-              <button
-                className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs md:text-base font-semibold md:px-6 md:py-3 p-2 rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 animate-glitter flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleVoiceAgentChat}
-                disabled={isCallActive || isVoiceLoading}
-              >
-                {isVoiceLoading ? (
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Loading...</span>
+                  <div className="p-4">
+                    {msg.language ? (
+                      <div className="relative group">
+                        <pre
+                          className={`language-${msg.language} bg-black/60 rounded-xl p-4 overflow-x-auto text-sm font-mono max-h-96 border border-gray-700/50`}
+                        >
+                          <code className={`language-${msg.language}`}>
+                            {msg.text}
+                          </code>
+                        </pre>
+                        <button
+                          className="absolute top-3 right-3 bg-gray-800/80 hover:bg-gray-700/80 text-white text-xs px-3 py-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 flex items-center gap-1"
+                          onClick={() => handleCopy(msg.text)}
+                          title="Copy code"
+                        >
+                          <Copy size={12} />
+                          Copy
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {msg.text}
+                      </p>
+                    )}
                   </div>
-                ) : isCallActive ? (
-                  <Bot className="h-5 w-5" />
-                ) : (
-                  "Voice Agent Chat"
+                </div>
+              </div>
+            ))}
+            {(isVoiceLoading || isDraftLoading) && (
+              <div className="flex justify-start">
+                <div className="bg-gradient-to-br from-gray-900/80 to-black/80 border border-gray-600/30 rounded-2xl p-4">
+                  <CustomLoading />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Control Panel */}
+          <div className="p-6 border-t border-purple-500/20 bg-gradient-to-r from-purple-900/10 to-indigo-900/10">
+            <div className="flex items-center justify-center gap-6">
+              {/* Voice Agent Button */}
+              <div className="relative">
+                {isCallActive && (
+                  <div className="absolute inset-0 rounded-2xl bg-purple-400/50 opacity-75 animate-ping"></div>
                 )}
-                <span className="absolute inset-0 glitter"></span>
+                <button
+                  className="relative flex items-center gap-3 px-6 py-4 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 border border-purple-500/30 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed group"
+                  onClick={handleVoiceAgentChat}
+                  disabled={isCallActive || isVoiceLoading}
+                >
+                  {isVoiceLoading ? (
+                    <>
+                      <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                      <span className="text-sm font-medium text-white">
+                        Connecting...
+                      </span>
+                    </>
+                  ) : isCallActive ? (
+                    <>
+                      <Mic size={20} className="text-white animate-pulse" />
+                      <span className="text-sm font-medium text-white hidden md:block">
+                        Voice Active
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <MicOff
+                        size={20}
+                        className="text-white group-hover:scale-110 transition-transform"
+                      />
+                      <span className="text-sm font-medium text-white hidden md:block">
+                        Start Voice Chat
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Stop Call Button */}
+              {isCallActive && (
+                <button
+                  className="flex items-center gap-3 px-6 py-4 bg-gradient-to-br from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 border border-red-500/30 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl"
+                  onClick={handleStopCall}
+                >
+                  <Phone size={20} className="text-white" />
+                  <span className="text-sm font-medium text-white hidden md:block">
+                    End Call
+                  </span>
+                </button>
+              )}
+
+              {/* Draft Research Paper Button */}
+              <button
+                className="flex items-center gap-3 px-6 py-4 bg-gradient-to-br from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/40 hover:to-teal-600/40 border border-emerald-500/30 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm group"
+                onClick={handleDraftResearchPaper}
+                disabled={isDraftLoading}
+              >
+                {isDraftLoading ? (
+                  <>
+                    <div className="animate-spin w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full" />
+                    <span className="text-sm font-medium text-emerald-200">
+                      Generating...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <FileText
+                      size={20}
+                      className="text-emerald-300 group-hover:scale-110 transition-transform"
+                    />
+                    <span className="text-sm font-medium text-emerald-200 hidden md:block">
+                      Draft Research Paper
+                    </span>
+                  </>
+                )}
               </button>
             </div>
-            {isCallActive && (
-              <button
-                className="relative bg-rose-600 text-white text-xs md:text-base font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-rose-700 transition-all duration-300"
-                onClick={handleStopCall}
-              >
-                <Phone className="h-5 w-5 md:inline-block mr-2 hidden" />
-                Stop Call
-              </button>
-            )}
-            <button
-              className="relative bg-white text-black text-xs md:text-base font-semibold p-2 md:px-6 md:py-3 rounded-lg shadow-lg hover:bg-gray-200 transition-all duration-300 border-2 border-gray-800 animate-pulse disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleDraftResearchPaper}
-              disabled={isDraftLoading}
-            >
-              {isDraftLoading ? (
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="animate-spin h-5 w-5 text-black"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <span>Loading...</span>
-                </div>
-              ) : (
-                "Draft a Research Paper"
-              )}
-            </button>
           </div>
-          <style jsx>{`
-            @keyframes glitter {
-              0% {
-                background: radial-gradient(
-                  circle,
-                  rgba(255, 255, 255, 0.3) 0%,
-                  transparent 70%
-                );
-                background-size: 200% 200%;
-                background-position: 0% 0%;
-              }
-              50% {
-                background: radial-gradient(
-                  circle,
-                  rgba(255, 255, 255, 0.5) 0%,
-                  transparent 70%
-                );
-                background-size: 150% 150%;
-                background-position: 100% 100%;
-              }
-              100% {
-                background: radial-gradient(
-                  circle,
-                  rgba(255, 255, 255, 0.3) 0%,
-                  transparent 70%
-                );
-                background-size: 200% 200%;
-                background-position: 0% 0%;
-              }
-            }
-            .glitter {
-              animation: glitter 1.5s infinite;
-              pointer-events: none;
-              mix-blend-mode: overlay;
-            }
-            @keyframes pulse {
-              0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
-              }
-              50% {
-                transform: scale(1.02);
-                box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.3);
-              }
-              100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
-              }
-            }
-            .animate-pulse {
-              animation: pulse 2s infinite;
-            }
-            @keyframes ping {
-              75%,
-              100% {
-                transform: scale(2);
-                opacity: 0;
-              }
-            }
-            .animate-ping {
-              animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-            }
-          `}</style>
         </div>
       </div>
+
+      <style jsx>{`
+        /* Custom scrollbar styles */
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: rgba(147, 51, 234, 0.3);
+          border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: rgba(147, 51, 234, 0.5);
+        }
+
+        /* Glassmorphism effects */
+        .backdrop-blur-xl {
+          backdrop-filter: blur(24px);
+        }
+
+        /* Glow effects */
+        .shadow-purple-500\/20 {
+          box-shadow: 0 25px 50px -12px rgba(147, 51, 234, 0.2);
+        }
+        .shadow-gray-500\/20 {
+          box-shadow: 0 25px 50px -12px rgba(107, 114, 128, 0.2);
+        }
+
+        /* Animation for ping effect */
+        @keyframes ping {
+          75%,
+          100% {
+            transform: scale(2);
+            opacity: 0;
+          }
+        }
+        .animate-ping {
+          animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+      `}</style>
     </div>
   );
 };
