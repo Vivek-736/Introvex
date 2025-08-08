@@ -9,12 +9,13 @@ import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/configs/firebaseConfigs";
-import { Upload } from "lucide-react";
+import { Upload, Search, Sparkles, Send } from "lucide-react";
 
 const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [searchMode, setSearchMode] = useState(false);
   const router = useRouter();
   const { user } = useUser();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -23,24 +24,25 @@ const Chat = () => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
       setFiles(selectedFiles);
-      await uploadFiles(selectedFiles);
+      toast.success(`${selectedFiles.length} file(s) selected`);
     }
   };
 
-  const uploadFiles = async (files: File[]) => {
+  const uploadFiles = async (
+    files: File[]
+  ): Promise<{ chatId: string; pdfUrls: string[] }> => {
     if (!user) {
       toast.error("User not authenticated");
-      return;
+      return { chatId: uuidv4(), pdfUrls: [] };
     }
-    setLoading(true);
+
     const chatId = uuidv4();
-    const userEmail = user?.emailAddresses[0]?.emailAddress;
     const pdfUrls: string[] = [];
 
     try {
       for (const file of files) {
         if (file.type !== "application/pdf") {
-          toast.error("Only PDF files are allowed");
+          toast.error(`${file.name} is not a PDF file`);
           continue;
         }
         const storageRef = ref(storage, `pdfs/${chatId}/${file.name}`);
@@ -48,74 +50,61 @@ const Chat = () => {
         const downloadURL = await getDownloadURL(storageRef);
         pdfUrls.push(downloadURL);
       }
-
-      if (pdfUrls.length > 0) {
-        const { error } = await supabase.from("Data").insert({
-          created_at: new Date().toISOString(),
-          userEmail,
-          title: input || "File Upload",
-          message: "",
-          chatId,
-          pdfUrl: pdfUrls.join(","),
-        });
-
-        if (error) throw error;
-        toast.success("Files uploaded successfully!");
-        router.push(`/workspace/chat/${chatId}`);
-      }
+      return { chatId, pdfUrls };
     } catch (error) {
       console.error("Error uploading files:", error);
-      toast.error("Failed to upload files");
-    } finally {
-      setLoading(false);
-      setFiles([]);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      toast.error("Error uploading files");
+      return { chatId, pdfUrls };
     }
   };
 
   const handleSend = async () => {
     if (input.trim() === "" && files.length === 0) return;
+
     setLoading(true);
-    const chatId = uuidv4();
     const userEmail = user?.emailAddresses[0]?.emailAddress;
-    const pdfUrls: string[] = [];
 
     try {
+      let chatId = uuidv4();
+      let pdfUrls: string[] = [];
+
       if (files.length > 0) {
-        for (const file of files) {
-          if (file.type !== "application/pdf") {
-            toast.error("Only PDF files are allowed");
-            continue;
-          }
-          const storageRef = ref(storage, `pdfs/${chatId}/${file.name}`);
-          await uploadBytes(storageRef, file);
-          const downloadURL = await getDownloadURL(storageRef);
-          pdfUrls.push(downloadURL);
+        const uploadResult = await uploadFiles(files);
+        chatId = uploadResult.chatId;
+        pdfUrls = uploadResult.pdfUrls;
+
+        if (pdfUrls.length > 0) {
+          toast.success(`${pdfUrls.length} PDF(s) uploaded successfully!`);
         }
       }
 
-      const geminiResponse = await fetch("/api/gemini", {
+      const apiEndpoint = searchMode ? "/api/search" : "/api/gemini";
+      const requestBody = searchMode
+        ? { message: input, chatId }
+        : { message: input, chatId, pdfUrls };
+
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, chatId, pdfUrls }),
+        body: JSON.stringify(requestBody),
       });
 
-      const data = await geminiResponse.json();
+      const data = await response.json();
 
-      if (!geminiResponse.ok) {
+      if (!response.ok) {
         throw new Error(`API error: ${data.error || "Unknown error"}`);
       }
 
-      const botResponse =
-        data.response ||
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "No response";
+      const botResponse = data.response;
       if (!botResponse || typeof botResponse !== "string") {
-        throw new Error("Invalid bot response from Gemini API");
+        throw new Error("Invalid bot response");
       }
 
-      const messageString = [`User: ${input}`, botResponse].join(",,,,");
-      const { data: insertedData, error } = await supabase
+      const messageString = [
+        `User: ${input}`,
+        `Assistant: ${botResponse}`,
+      ].join(",,,,");
+      const { error } = await supabase
         .from("Data")
         .insert({
           created_at: new Date().toISOString(),
@@ -128,6 +117,13 @@ const Chat = () => {
         .select();
 
       if (error) throw error;
+
+      if (searchMode) {
+        toast.success("Search completed successfully!");
+      } else {
+        toast.success("Response generated successfully!");
+      }
+
       router.push(`/workspace/chat/${chatId}`);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -143,13 +139,42 @@ const Chat = () => {
   return (
     <StyledWrapper>
       <div className="container_chat_bot">
-        <div className="container-chat-options">
+        <div className="mode-selector">
+          <button
+            className={`mode-btn ${!searchMode ? "active" : ""}`}
+            onClick={() => setSearchMode(false)}
+            disabled={loading}
+          >
+            <Sparkles size={20} />
+            AI Chat
+          </button>
+          <button
+            className={`mode-btn ${searchMode ? "active" : ""}`}
+            onClick={() => setSearchMode(true)}
+            disabled={loading}
+          >
+            <Search size={20} />
+            Web Search
+          </button>
+        </div>
+
+        <div
+          className={`container-chat-options ${
+            searchMode ? "search-mode" : ""
+          }`}
+        >
           <div className="chat">
             <div className="chat-bot">
               <textarea
                 id="chat_bot"
                 name="chat_bot"
-                placeholder="Imagine Something...✦˚"
+                placeholder={
+                  searchMode
+                    ? "Search the web for information...🔍"
+                    : files.length > 0
+                    ? `Ask questions about your ${files.length} uploaded file(s)...✦`
+                    : "Imagine Something...✦˚"
+                }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -160,43 +185,51 @@ const Chat = () => {
                 }}
                 disabled={loading}
               />
+              {files.length > 0 && (
+                <div className="file-indicator">
+                  {files.map((file, index) => (
+                    <div key={index} className="file-tag">
+                      📄 {file.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="options">
               <div className="btns-add">
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  multiple
-                  style={{ display: "none" }}
-                  onChange={handleFileChange}
-                  ref={fileInputRef}
-                  disabled={loading}
-                />
-                <button
-                  className="btn-upload"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={loading}
-                  title="Upload PDFs"
-                >
-                  <Upload size={24} />
-                </button>
+                {!searchMode && (
+                  <>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      multiple
+                      style={{ display: "none" }}
+                      onChange={handleFileChange}
+                      ref={fileInputRef}
+                      disabled={loading}
+                    />
+                    <button
+                      className="btn-upload"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={loading}
+                      title="Upload PDFs"
+                    >
+                      <Upload size={24} />
+                    </button>
+                  </>
+                )}
               </div>
               <button
                 className="btn-submit"
                 onClick={handleSend}
                 disabled={loading}
-                title="Send message"
+                title={searchMode ? "Search web" : "Send message"}
               >
                 {loading ? (
-                  <span className="loading-text">Loading...</span>
+                  <span className="loading-text">Processing...</span>
                 ) : (
                   <i>
-                    <svg viewBox="0 0 512 512">
-                      <path
-                        fill="currentColor"
-                        d="M473 39.05a24 24 0 0 0-25.5-5.46L47.47 185h-.08a24 24 0 0 0 1 45.16l.41.13l137.3 58.63a16 16 0 0 0 15.54-3.59L422 80a7.07 7.07 0 0 1 10 10L226.66 310.26a16 16 0 0 0-3.59 15.54l58.65 137.38c.06.2.12.38.19.57c3.2 9.27 11.3 15.81 21.09 16.25h1a24.63 24.63 0 0 0 23-15.46L478.39 64.62A24 24 0 0 0 473 39.05"
-                      />
-                    </svg>
+                    {searchMode ? <Search size={24} /> : <Send size={24} />}
                   </i>
                 )}
               </button>
@@ -222,6 +255,17 @@ const Chat = () => {
           >
             Write a code to generate a summary
           </span>
+          <span
+            onClick={() => {
+              const prompt = searchMode
+                ? "What are the latest trends in AI technology?"
+                : "Explain this concept in simple terms";
+              navigator.clipboard.writeText(prompt);
+              toast.success("Prompt copied to clipboard!");
+            }}
+          >
+            {searchMode ? "Latest AI trends" : "Explain in simple terms"}
+          </span>
         </div>
       </div>
     </StyledWrapper>
@@ -238,6 +282,46 @@ const StyledWrapper = styled.div`
     padding: 20px 0;
   }
 
+  .mode-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+
+  .mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid #363636;
+    border-radius: 16px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+
+    &:hover {
+      border-color: #7c3aed;
+      background: rgba(124, 58, 237, 0.1);
+      transform: translateY(-2px);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      border-color: #7c3aed;
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
   .container-chat-options {
     position: relative;
     display: flex;
@@ -252,6 +336,19 @@ const StyledWrapper = styled.div`
     border-radius: 20px;
     padding: 2px;
     overflow: hidden;
+    transition: all 0.3s ease;
+
+    &.search-mode {
+      background: linear-gradient(
+        to bottom right,
+        #7c3aed,
+        #363636,
+        #363636,
+        #363636,
+        #7c3aed
+      );
+      box-shadow: 0 0 30px rgba(124, 58, 237, 0.2);
+    }
   }
 
   .chat {
@@ -266,6 +363,7 @@ const StyledWrapper = styled.div`
   .chat-bot {
     position: relative;
     display: flex;
+    flex-direction: column;
   }
 
   .chat-bot textarea {
@@ -306,6 +404,25 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .file-indicator {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 14px 0;
+  }
+
+  .file-tag {
+    background: rgba(124, 58, 237, 0.2);
+    border: 1px solid #7c3aed;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #a855f7;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   .options {
     display: flex;
     justify-content: space-between;
@@ -343,7 +460,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 8px;
     background-image: linear-gradient(to top, #292929, #555555, #292929);
     border-radius: 12px;
     box-shadow: inset 0 6px 2px -4px rgba(255, 255, 255, 0.5);
@@ -359,8 +476,8 @@ const StyledWrapper = styled.div`
       transition: all 0.3s ease;
     }
     &:hover svg {
-      color: #f3f6fd;
-      filter: drop-shadow(0 0 5px #ffffff);
+      color: #7c3aed;
+      filter: drop-shadow(0 0 5px #7c3aed);
     }
     &:disabled {
       opacity: 0.5;
@@ -398,13 +515,13 @@ const StyledWrapper = styled.div`
       transition: all 0.3s ease;
     }
     &:hover svg {
-      color: #f3f6fd;
-      filter: drop-shadow(0 0 5px #ffffff);
+      color: #7c3aed;
+      filter: drop-shadow(0 0 5px #7c3aed);
     }
     &:focus svg {
-      color: #f3f6fd;
-      filter: drop-shadow(0 0 5px #ffffff);
-      transform: scale(1.2) rotate(45deg) translateX(-2px) translateY(1px);
+      color: #7c3aed;
+      filter: drop-shadow(0 0 5px #7c3aed);
+      transform: scale(1.1);
     }
     &:active {
       transform: scale(0.92);
@@ -416,7 +533,7 @@ const StyledWrapper = styled.div`
     }
     .loading-text {
       color: #f3f6fd;
-      font-size: 14px;
+      font-size: 12px;
       padding: 0 8px;
     }
   }
@@ -440,7 +557,9 @@ const StyledWrapper = styled.div`
       transition: all 0.3s ease;
       &:hover {
         background-color: #363636;
-        border-color: #f3f6fd;
+        border-color: #7c3aed;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
       }
     }
   }

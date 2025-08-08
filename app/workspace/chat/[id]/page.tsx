@@ -8,7 +8,21 @@ import CustomLoading from "@/components/CustomLoading";
 import { toast } from "sonner";
 import ChatButton from "@/components/workspaceUI/ChatButton";
 import { useUser } from "@clerk/nextjs";
-import { Import, File, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Import,
+  File,
+  CheckCircle,
+  AlertCircle,
+  Search,
+  Upload,
+  Sparkles,
+  Globe,
+  FileText,
+  Copy,
+  ExternalLink,
+} from "lucide-react";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/configs/firebaseConfigs";
 
 const ChatIdPage = () => {
   const params = useParams();
@@ -18,16 +32,24 @@ const ChatIdPage = () => {
   const chatIdFromQuery = searchParams.get("chatId");
   const chatId = chatIdFromParams || chatIdFromQuery;
 
-  type Message = { sender: string; text: string; language?: string };
+  type Message = {
+    sender: string;
+    text: string;
+    language?: string;
+    isSearch?: boolean;
+  };
   const [messages, setMessages] = useState<Message[]>([]);
   const [pdfUrls, setPdfUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [searchMode, setSearchMode] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const [pdfProcessingStatus, setPdfProcessingStatus] = useState<
     "idle" | "processing" | "success" | "error"
   >("idle");
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useUser();
   const userEmail = user?.emailAddresses[0]?.emailAddress || "";
 
@@ -81,34 +103,43 @@ const ChatIdPage = () => {
               }
 
               if (botText) {
+                const isSearch = botText.includes("🔍 **Web Search Results**");
+                const cleanedBotText = botText.replace(
+                  "🔍 **Web Search Results**\n\n",
+                  ""
+                );
+
                 const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
                 let lastIndex = 0;
                 let match;
 
-                while ((match = codeBlockRegex.exec(botText))) {
+                while ((match = codeBlockRegex.exec(cleanedBotText))) {
                   const [fullMatch, language, code] = match;
-                  const beforeText = botText
+                  const beforeText = cleanedBotText
                     .slice(lastIndex, match.index)
                     .trim();
                   if (beforeText) {
                     processedMessages.push({
                       sender: "bot",
                       text: cleanText(beforeText),
+                      isSearch,
                     });
                   }
                   processedMessages.push({
                     sender: "bot",
                     text: code.trim(),
                     language: language || "plaintext",
+                    isSearch,
                   });
                   lastIndex = match.index + fullMatch.length;
                 }
 
-                const remainingText = botText.slice(lastIndex).trim();
+                const remainingText = cleanedBotText.slice(lastIndex).trim();
                 if (remainingText) {
                   processedMessages.push({
                     sender: "bot",
                     text: cleanText(remainingText),
+                    isSearch,
                   });
                 }
               }
@@ -138,15 +169,49 @@ const ChatIdPage = () => {
     Prism.highlightAll();
   }, [messages]);
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      setFiles(selectedFiles);
+      toast.success(`${selectedFiles.length} file(s) selected`);
+    }
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    if (!user) {
+      toast.error("User not authenticated");
+      return [];
+    }
+
+    const pdfUrls: string[] = [];
+
+    try {
+      for (const file of files) {
+        if (file.type !== "application/pdf") {
+          toast.error(`${file.name} is not a PDF file`);
+          continue;
+        }
+        const storageRef = ref(storage, `pdfs/${chatId}/${file.name}`);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        pdfUrls.push(downloadURL);
+      }
+      return pdfUrls;
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      throw error;
+    }
+  };
+
   const handleSend = async () => {
-    if (input.trim() === "") return;
+    if (input.trim() === "" && files.length === 0) return;
 
     setSending(true);
     const newUserMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, newUserMessage]);
 
     // Show PDF processing status if PDFs are involved
-    if (pdfUrls.length > 0) {
+    if (pdfUrls.length > 0 || files.length > 0) {
       setPdfProcessingStatus("processing");
     }
 
@@ -163,45 +228,59 @@ const ChatIdPage = () => {
       }
 
       const currentMessage = currentData?.message || "";
-      const pdfUrlsFromDb = currentData?.pdfUrl
+      let pdfUrlsFromDb = currentData?.pdfUrl
         ? currentData.pdfUrl.split(",").filter((url: any) => url.trim())
         : [];
 
-      const pdfUrlsToSend = pdfUrls.length > 0 ? pdfUrls : pdfUrlsFromDb;
+      // Upload new files if any
+      let newPdfUrls: string[] = [];
+      if (files.length > 0) {
+        newPdfUrls = await uploadFiles(files);
+        if (newPdfUrls.length > 0) {
+          toast.success(`${newPdfUrls.length} PDF(s) uploaded!`);
+        }
+      }
 
-      console.log("Sending request to Gemini API...");
-      console.log("PDF URLs being sent:", pdfUrlsToSend.length, pdfUrlsToSend);
+      const allPdfUrls = [...pdfUrls, ...pdfUrlsFromDb, ...newPdfUrls];
+      const uniquePdfUrls = Array.from(new Set(allPdfUrls));
 
-      const geminiResponse = await fetch("/api/gemini", {
+      // Choose API endpoint based on search mode
+      const apiEndpoint = searchMode ? "/api/search" : "/api/gemini";
+      const requestBody = searchMode
+        ? { message: input, chatId }
+        : { message: input, chatId, pdfUrls: uniquePdfUrls };
+
+      console.log(`Sending request to ${apiEndpoint}...`);
+      if (!searchMode && uniquePdfUrls.length > 0) {
+        console.log(
+          "PDF URLs being sent:",
+          uniquePdfUrls.length,
+          uniquePdfUrls
+        );
+      }
+
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input,
-          chatId,
-          pdfUrls: pdfUrlsToSend,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      const data = await geminiResponse.json();
+      const data = await response.json();
 
-      if (!geminiResponse.ok) {
+      if (!response.ok) {
         console.error("API Error:", data);
         throw new Error(`API error: ${data.error || "Unknown error"}`);
       }
 
       const botResponse = data.response;
       if (!botResponse || typeof botResponse !== "string") {
-        throw new Error("Invalid bot response from Gemini API");
+        throw new Error("Invalid bot response from API");
       }
 
       // Update PDF processing status
-      if (pdfUrlsToSend.length > 0) {
+      if (uniquePdfUrls.length > 0 && !searchMode) {
         setPdfProcessingStatus("success");
-        if (data.metadata?.pdfCount) {
-          toast.success(
-            `Successfully processed ${data.metadata.pdfCount} PDF(s)`
-          );
-        }
+        setPdfUrls(uniquePdfUrls);
       }
 
       // Update database
@@ -211,12 +290,18 @@ const ChatIdPage = () => {
         `Assistant: ${botResponse}`,
       ].join(",,,,");
 
+      const updateData: any = {
+        message: updatedMessage,
+        created_at: new Date().toISOString(),
+      };
+
+      if (uniquePdfUrls.length > 0 && !searchMode) {
+        updateData.pdfUrl = uniquePdfUrls.join(",");
+      }
+
       const { error } = await supabase
         .from("Data")
-        .update({
-          message: updatedMessage,
-          created_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("chatId", chatId);
 
       if (error) {
@@ -225,37 +310,49 @@ const ChatIdPage = () => {
       }
 
       // Process bot response for display
+      const isSearch = botResponse.includes("🔍 **Web Search Results**");
+      const cleanedBotResponse = botResponse.replace(
+        "🔍 **Web Search Results**\n\n",
+        ""
+      );
+
       const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
       let lastIndex = 0;
       const processedMessages: {
         sender: string;
         text: string;
         language?: string;
+        isSearch?: boolean;
       }[] = [];
       let match;
 
-      while ((match = codeBlockRegex.exec(botResponse))) {
+      while ((match = codeBlockRegex.exec(cleanedBotResponse))) {
         const [fullMatch, language, code] = match;
-        const beforeText = botResponse.slice(lastIndex, match.index).trim();
+        const beforeText = cleanedBotResponse
+          .slice(lastIndex, match.index)
+          .trim();
         if (beforeText) {
           processedMessages.push({
             sender: "bot",
             text: cleanText(beforeText),
+            isSearch,
           });
         }
         processedMessages.push({
           sender: "bot",
           text: code.trim(),
           language: language || "plaintext",
+          isSearch,
         });
         lastIndex = match.index + fullMatch.length;
       }
 
-      const remainingText = botResponse.slice(lastIndex).trim();
+      const remainingText = cleanedBotResponse.slice(lastIndex).trim();
       if (remainingText) {
         processedMessages.push({
           sender: "bot",
           text: cleanText(remainingText),
+          isSearch,
         });
       }
 
@@ -275,6 +372,8 @@ const ChatIdPage = () => {
     } finally {
       setSending(false);
       setInput("");
+      setFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -295,159 +394,334 @@ const ChatIdPage = () => {
     switch (pdfProcessingStatus) {
       case "processing":
         return (
-          <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full" />
         );
       case "success":
-        return <CheckCircle size={16} className="text-green-500" />;
+        return <CheckCircle size={16} className="text-green-400" />;
       case "error":
-        return <AlertCircle size={16} className="text-red-500" />;
+        return <AlertCircle size={16} className="text-red-400" />;
       default:
-        return <File size={16} />;
+        return <FileText size={16} />;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen w-full text-white bg-black flex items-center justify-center">
+      <div className="min-h-screen w-full text-white bg-gradient-to-br from-black via-purple-950/20 to-black flex items-center justify-center">
         <CustomLoading />
       </div>
     );
   }
 
   return (
-    <div className="md:min-h-screen min-h-[60vh] w-full text-white bg-black flex flex-col items-center justify-center p-4 sm:p-10">
-      <div className="w-full max-w-4xl flex flex-col h-[88vh] rounded-lg shadow-lg relative">
-        {pdfUrls.length > 0 && (
-          <div className="absolute top-4 left-4 flex flex-col gap-2">
-            {pdfUrls.map((url, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center ml-4 gap-2 text-sm text-gray-300 hover:text-white transition"
-                  title="View PDF"
-                >
-                  {getPdfStatusIcon()}
-                  <span>PDF {index + 1}</span>
-                </a>
-                {pdfProcessingStatus === "processing" && index === 0 && (
-                  <span className="text-xs text-blue-400">Processing...</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+    <div className="min-h-screen w-full text-white bg-gradient-to-br from-black via-purple-950/20 to-black">
+      {/* Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[100px]"></div>
+      </div>
 
-        <div
-          className="flex-1 overflow-y-auto px-4 pb-4 space-y-4"
-          ref={chatContainerRef}
-        >
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex w-full p-4 ${
-                msg.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+      <div className="relative flex flex-col items-center justify-center p-4 sm:p-10 min-h-screen">
+        <div className="w-full max-w-6xl flex flex-col h-[88vh] rounded-3xl shadow-2xl backdrop-blur-xl bg-black/40 border border-purple-500/20 relative overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-purple-500/20 bg-gradient-to-r from-purple-900/20 to-indigo-900/20">
+            <div className="flex items-center gap-4">
+              <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+              <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+            </div>
+
+            {/* Mode Toggle */}
+            <div className="flex items-center gap-3 bg-black/30 p-2 rounded-2xl border border-purple-500/30">
+              <button
+                onClick={() => setSearchMode(false)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
+                  !searchMode
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg"
+                    : "hover:bg-white/10"
+                }`}
+                disabled={sending}
+              >
+                <Sparkles size={16} />
+                <span className="text-sm font-medium">AI Chat</span>
+              </button>
+              <button
+                onClick={() => setSearchMode(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
+                  searchMode
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg"
+                    : "hover:bg-white/10"
+                }`}
+                disabled={sending}
+              >
+                <Globe size={16} />
+                <span className="text-sm font-medium">Web Search</span>
+              </button>
+            </div>
+
+            {/* PDF Status */}
+            {pdfUrls.length > 0 && (
+              <div className="flex items-center gap-2 bg-purple-500/20 px-3 py-2 rounded-xl border border-purple-500/30">
+                {getPdfStatusIcon()}
+                <span className="text-sm text-purple-200">
+                  {pdfUrls.length} PDF(s)
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Messages */}
+          <div
+            className="flex-1 overflow-y-auto px-6 py-4 space-y-6 scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-transparent"
+            ref={chatContainerRef}
+          >
+            {messages.map((msg, index) => (
               <div
-                className={`max-w-[70%] p-4 rounded-lg shadow-md ${
-                  msg.sender === "user" ? "bg-white text-black" : "bg-gray-800"
+                key={index}
+                className={`flex w-full ${
+                  msg.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {msg.language ? (
-                  <div className="relative">
-                    <pre
-                      className={`language-${msg.language} bg-gray-950 rounded-lg p-4 overflow-x-auto md:text-sm text-xs font-mono max-h-96`}
-                    >
-                      <code className={`language-${msg.language}`}>
-                        {msg.text}
-                      </code>
-                    </pre>
-                    <button
-                      className="absolute top-2 right-2 bg-gray-700 text-white text-xs px-2 py-1 rounded hover:bg-gray-600 transition"
-                      onClick={() => handleCopy(msg.text)}
-                      title="Copy code"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                ) : (
-                  <p className="md:text-base text-xs leading-relaxed whitespace-pre-wrap">
-                    {msg.text}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-          {sending && <CustomLoading />}
-        </div>
+                <div
+                  className={`max-w-[75%] rounded-2xl shadow-xl backdrop-blur-sm border transition-all duration-300 hover:shadow-2xl ${
+                    msg.sender === "user"
+                      ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white border-purple-400/30 shadow-purple-500/20"
+                      : msg.isSearch
+                      ? "bg-gradient-to-br from-indigo-900/60 to-purple-900/60 border-indigo-400/30 shadow-indigo-500/20"
+                      : "bg-gradient-to-br from-gray-900/80 to-black/80 border-gray-600/30 shadow-gray-500/20"
+                  }`}
+                >
+                  {/* Message Header for bot messages */}
+                  {msg.sender === "bot" && (
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                      {msg.isSearch ? (
+                        <>
+                          <Search size={16} className="text-indigo-300" />
+                          <span className="text-xs font-medium text-indigo-300 uppercase tracking-wide">
+                            Web Search Results
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} className="text-purple-300" />
+                          <span className="text-xs font-medium text-purple-300 uppercase tracking-wide">
+                            AI Assistant
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
 
-        <div className="p-4 rounded-2xl border-t border-gray-700 bg-gray-900/80 backdrop-blur-sm">
-          <div className="flex items-center bg-gray-800/60 backdrop-blur-md rounded-2xl px-4 py-3 shadow-inner shadow-black/40">
-            <textarea
-              placeholder="Type your message... ✦"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              disabled={sending}
-              className="flex-1 text-sm sm:text-base h-14 resize-none px-4 py-3 bg-transparent border-none text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-60 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 rounded-xl"
-            />
-            
-            <div className="flex items-center gap-3 ml-3">
-              <button
-                className="relative px-4 py-2 text-sm font-medium text-white rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
-                onClick={handleDraftRedirect}
-              >
-                <span className="md:block hidden">Import chat</span>
-                <Import className="md:hidden" />
-                <span className="absolute inset-0 glitter rounded-xl"></span>
-              </button>
-              <ChatButton
-                text={sending ? ".........." : "Send"}
-                onClick={handleSend}
-                disabled={sending}
-              />
-            </div>
+                  <div className="p-4">
+                    {msg.language ? (
+                      <div className="relative group">
+                        <pre
+                          className={`language-${msg.language} bg-black/60 rounded-xl p-4 overflow-x-auto text-sm font-mono max-h-96 border border-gray-700/50`}
+                        >
+                          <code className={`language-${msg.language}`}>
+                            {msg.text}
+                          </code>
+                        </pre>
+                        <button
+                          className="absolute top-3 right-3 bg-gray-800/80 hover:bg-gray-700/80 text-white text-xs px-3 py-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 flex items-center gap-1"
+                          onClick={() => handleCopy(msg.text)}
+                          title="Copy code"
+                        >
+                          <Copy size={12} />
+                          Copy
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {msg.text}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="bg-gradient-to-br from-gray-900/80 to-black/80 border border-gray-600/30 rounded-2xl p-4">
+                  <CustomLoading />
+                </div>
+              </div>
+            )}
           </div>
 
-          <style jsx>{`
-            @keyframes glitter {
-              0%,
-              100% {
-                background: radial-gradient(
-                  circle,
-                  rgba(255, 255, 255, 0.2) 0%,
-                  transparent 70%
-                );
-                background-size: 200% 200%;
-                background-position: 0% 0%;
-              }
-              50% {
-                background: radial-gradient(
-                  circle,
-                  rgba(255, 255, 255, 0.35) 0%,
-                  transparent 70%
-                );
-                background-size: 150% 150%;
-                background-position: 100% 100%;
-              }
-            }
-            .glitter {
-              animation: glitter 1.5s infinite;
-              pointer-events: none;
-              mix-blend-mode: soft-light;
-              border-radius: inherit;
-              opacity: 0.4;
-            }
-          `}</style>
+          {/* Input Area */}
+          <div className="p-6 border-t border-purple-500/20 bg-gradient-to-r from-purple-900/10 to-indigo-900/10">
+            {/* File Upload Area */}
+            {!searchMode && files.length > 0 && (
+              <div className="mb-4 p-3 bg-purple-500/10 rounded-xl border border-purple-500/30">
+                <div className="flex flex-wrap gap-2">
+                  {files.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 bg-purple-600/20 px-3 py-1 rounded-lg text-sm"
+                    >
+                      <FileText size={14} className="text-purple-300" />
+                      <span className="text-purple-200">{file.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-end gap-4 bg-black/40 backdrop-blur-sm rounded-2xl border border-purple-500/30 p-4 shadow-xl">
+              <input
+                type="file"
+                accept="application/pdf"
+                multiple
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                disabled={sending || searchMode}
+              />
+
+              <div className="flex-1">
+                <textarea
+                  placeholder={
+                    searchMode
+                      ? "Search the web for information...🔍"
+                      : files.length > 0
+                      ? `Ask questions about your ${files.length} uploaded file(s)...✦`
+                      : "Type your message...✦"
+                  }
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  disabled={sending}
+                  className="w-full h-20 resize-none bg-transparent border-none text-white placeholder:text-purple-300/70 focus:outline-none text-sm leading-relaxed scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-transparent"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                {!searchMode && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={sending}
+                    className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-600/20 to-indigo-600/20 hover:from-purple-600/40 hover:to-indigo-600/40 border border-purple-500/30 rounded-xl transition-all duration-200 disabled:opacity-50 group"
+                    title="Upload PDFs"
+                  >
+                    <Upload
+                      size={18}
+                      className="text-purple-300 group-hover:text-purple-200"
+                    />
+                  </button>
+                )}
+
+                <button
+                  onClick={handleDraftRedirect}
+                  className="flex items-center gap-2 px-4 py-3 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/40 hover:to-purple-600/40 border border-indigo-500/30 rounded-xl transition-all duration-200 group"
+                  title="Import chat to draft"
+                >
+                  <Import
+                    size={16}
+                    className="text-indigo-300 group-hover:text-indigo-200"
+                  />
+                  <span className="text-sm text-indigo-300 group-hover:text-indigo-200 hidden sm:block">
+                    Draft
+                  </span>
+                </button>
+
+                <ChatButton
+                  text={sending ? "Sending..." : searchMode ? "Search" : "Send"}
+                  onClick={handleSend}
+                  disabled={sending || (!input.trim() && files.length === 0)}
+                />
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex flex-wrap gap-2 mt-4 justify-center">
+              <button
+                onClick={() => {
+                  const prompt = searchMode
+                    ? "What are the latest developments in artificial intelligence?"
+                    : "Analyze the content and provide key insights";
+                  setInput(prompt);
+                }}
+                className="px-3 py-2 text-xs bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg transition-all duration-200 text-purple-200"
+              >
+                {searchMode ? "Latest AI developments" : "Analyze content"}
+              </button>
+              <button
+                onClick={() => {
+                  const prompt = searchMode
+                    ? "Search for recent news about technology trends"
+                    : "Summarize the main points";
+                  setInput(prompt);
+                }}
+                className="px-3 py-2 text-xs bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg transition-all duration-200 text-purple-200"
+              >
+                {searchMode ? "Tech trends news" : "Summarize"}
+              </button>
+              <button
+                onClick={() => {
+                  const prompt = searchMode
+                    ? "Find information about best practices in software development"
+                    : "Explain this in simple terms";
+                  setInput(prompt);
+                }}
+                className="px-3 py-2 text-xs bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg transition-all duration-200 text-purple-200"
+              >
+                {searchMode ? "Dev best practices" : "Simple explanation"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      <style jsx>{`
+        /* Custom scrollbar styles */
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: rgba(147, 51, 234, 0.3);
+          border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: rgba(147, 51, 234, 0.5);
+        }
+
+        /* Glassmorphism effects */
+        .backdrop-blur-xl {
+          backdrop-filter: blur(24px);
+        }
+
+        /* Animation for gradient backgrounds */
+        @keyframes gradient-shift {
+          0%,
+          100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+
+        /* Glow effects */
+        .shadow-purple-500\/20 {
+          box-shadow: 0 25px 50px -12px rgba(147, 51, 234, 0.2);
+        }
+        .shadow-indigo-500\/20 {
+          box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.2);
+        }
+        .shadow-gray-500\/20 {
+          box-shadow: 0 25px 50px -12px rgba(107, 114, 128, 0.2);
+        }
+      `}</style>
     </div>
   );
 };

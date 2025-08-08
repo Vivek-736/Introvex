@@ -50,10 +50,9 @@ export async function POST(request: Request) {
     if (existingMessages) {
       const messageHistory = existingMessages.split(",,,,").slice(-12);
       if (messageHistory.length > 0) {
-        context += "=== Conversation History ===\n";
+        context += "=== Previous Conversation ===\n";
         messageHistory.forEach((msg: string, index: number) => {
           if (msg.trim()) {
-            // Clean up the message format
             const cleanMsg = msg.trim().replace(/^(User|Assistant): /, "");
             const prefix = index % 2 === 0 ? "User" : "Assistant";
             context += `${prefix}: ${cleanMsg}\n`;
@@ -72,71 +71,69 @@ export async function POST(request: Request) {
         const pdfContent = await processMultiplePDFs(pdfUrls);
         pdfProcessingTime = Date.now() - pdfStartTime;
 
-        if (pdfContent.trim()) {
+        if (pdfContent && pdfContent.trim()) {
           context += "=== Document Content ===\n";
-          context += pdfContent;
-          context += "\n";
+          // Clean and format PDF content
+          const cleanedContent = pdfContent
+            .replace(/\s+/g, ' ')
+            .replace(/\n\s*\n/g, '\n')
+            .trim();
+          context += cleanedContent;
+          context += "\n\n";
           console.log(
-            `[${chatId}] PDF processing completed in ${pdfProcessingTime}ms - ${pdfContent.length} chars extracted`
+            `[${chatId}] PDF processing completed in ${pdfProcessingTime}ms - ${cleanedContent.length} chars extracted`
           );
         } else {
           context += "=== Document Content ===\n";
-          context +=
-            "⚠️ No readable text could be extracted from the provided PDF documents.\n\n";
+          context += "⚠️ No readable text could be extracted from the provided PDF documents. The documents might be image-based, password-protected, or corrupted.\n\n";
           console.warn(`[${chatId}] No text extracted from PDFs`);
         }
       } catch (error) {
         pdfProcessingTime = Date.now() - pdfStartTime;
         console.error(`[${chatId}] PDF processing failed:`, error);
         context += "=== Document Content ===\n";
-        context += "❌ Error occurred while processing PDF documents.\n\n";
+        context += `❌ Error occurred while processing PDF documents: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;
       }
     }
 
     if (message?.trim()) {
-      context += "=== Current User Message ===\n";
+      context += "=== Current Question ===\n";
       context += `${message.trim()}\n\n`;
     }
 
     context += "=== Instructions ===\n";
-    context += "Please provide a helpful and accurate response. ";
+    context += "You are a helpful AI assistant. ";
     if (pdfUrls && pdfUrls.length > 0) {
-      context +=
-        "If the user's question relates to the document content above, use specific information from those documents. If you cannot find relevant information in the documents, please state this clearly. ";
+      context += "The user has provided document(s) above. Please analyze the document content carefully and provide accurate, specific answers based on the information contained within. If the user's question relates to the document content, cite specific details from the documents. If you cannot find relevant information in the documents, please state this clearly. ";
     }
-    context +=
-      "Be conversational, informative, and cite specific details when available.\n\n";
+    context += "Provide comprehensive, well-structured responses. Use formatting like bullet points, numbered lists, or sections when appropriate to improve readability.\n\n";
 
-    const maxContextLength = 28000;
+    const maxContextLength = 30000;
     if (context.length > maxContextLength) {
-      console.warn(
-        `[${chatId}] Context too long (${context.length}), truncating...`
-      );
+      console.warn(`[${chatId}] Context too long (${context.length}), truncating...`);
+
       const parts = context.split("=== Document Content ===");
       if (parts.length > 1) {
-        const documentContent = parts[1].split(
-          "=== Current User Message ==="
-        )[0];
-        const truncatedDoc = documentContent.substring(
-          0,
-          maxContextLength * 0.6
-        );
-        context =
-          parts[0] +
-          "=== Document Content ===\n" +
-          truncatedDoc +
-          "\n[Content truncated]\n\n" +
-          (parts[1].includes("=== Current User Message ===")
-            ? "=== Current User Message ===" +
-              parts[1].split("=== Current User Message ===")[1]
-            : "");
+        const beforeDoc = parts[0];
+        const afterDoc = parts[1].split("=== Current Question ===");
+        const docContent = afterDoc[0];
+        const currentQuestion = afterDoc.length > 1 ? "=== Current Question ===" + afterDoc[1] : "";
+
+        const reservedSpace = beforeDoc.length + currentQuestion.length + 1000;
+        const availableForDoc = maxContextLength - reservedSpace;
+        
+        if (availableForDoc > 2000) {
+          const truncatedDoc = docContent.substring(0, availableForDoc) + "\n[Document content truncated for length]\n\n";
+          context = beforeDoc + "=== Document Content ===\n" + truncatedDoc + currentQuestion;
+        } else {
+          context = beforeDoc + "=== Document Content ===\n[Large document provided - please ask specific questions about the content]\n\n" + currentQuestion;
+        }
       } else {
-        context =
-          context.substring(0, maxContextLength) + "\n[Context truncated]";
+        context = context.substring(0, maxContextLength) + "\n[Context truncated]";
       }
     }
 
-    console.log(`[${chatId}] Context prepared: ${context.length} characters`);
+    console.log(`[${chatId}] Final context: ${context.length} characters`);
 
     const geminiStartTime = Date.now();
     const geminiResponse = await fetch(
@@ -189,7 +186,6 @@ export async function POST(request: Request) {
         errorText
       );
 
-      // Handle specific error cases
       if (geminiResponse.status === 429) {
         return NextResponse.json(
           { error: "Rate limit exceeded. Please try again in a moment." },
@@ -219,6 +215,14 @@ export async function POST(request: Request) {
     }
 
     const candidate = responseData.candidates[0];
+    
+    if (candidate.finishReason === "SAFETY") {
+      return NextResponse.json(
+        { error: "Response was filtered for safety reasons. Please try rephrasing your question." },
+        { status: 400 }
+      );
+    }
+
     if (!candidate.content?.parts?.length) {
       console.error(`[${chatId}] No content in response:`, candidate);
       return NextResponse.json(
@@ -229,11 +233,7 @@ export async function POST(request: Request) {
 
     const botResponse = candidate.content.parts[0].text;
 
-    if (
-      !botResponse ||
-      typeof botResponse !== "string" ||
-      !botResponse.trim()
-    ) {
+    if (!botResponse || typeof botResponse !== "string" || !botResponse.trim()) {
       console.error(`[${chatId}] Invalid bot response:`, botResponse);
       return NextResponse.json(
         { error: "Invalid response content from AI service" },
@@ -258,6 +258,7 @@ export async function POST(request: Request) {
         contextLength: context.length,
         pdfCount: pdfUrls?.length || 0,
         responseLength: botResponse.trim().length,
+        source: "gemini"
       },
     });
   } catch (error) {
@@ -267,10 +268,8 @@ export async function POST(request: Request) {
       const body = await request.json();
       chatId = body?.chatId || "unknown";
     } catch {}
-    // @ts-ignore
-    console.error(`[${chatId}] Error after ${totalTime}ms:`,
-      error
-    );
+
+    console.error(`[${chatId}] Error after ${totalTime}ms:`, error);
 
     let errorMessage = "An unexpected error occurred";
     let statusCode = 500;
@@ -279,16 +278,12 @@ export async function POST(request: Request) {
       const message = error.message.toLowerCase();
 
       if (message.includes("fetch") || message.includes("network")) {
-        errorMessage =
-          "Network error. Please check your connection and try again.";
+        errorMessage = "Network error. Please check your connection and try again.";
         statusCode = 503;
       } else if (message.includes("timeout")) {
         errorMessage = "Request timed out. Please try again.";
         statusCode = 408;
-      } else if (
-        message.includes("api_key") ||
-        message.includes("unauthorized")
-      ) {
+      } else if (message.includes("api_key") || message.includes("unauthorized")) {
         errorMessage = "Service configuration error";
         statusCode = 500;
       } else if (message.includes("too large") || message.includes("token")) {
@@ -304,8 +299,7 @@ export async function POST(request: Request) {
         error: errorMessage,
         metadata: {
           processingTime: totalTime,
-          errorType:
-            error instanceof Error ? error.constructor.name : "UnknownError",
+          errorType: error instanceof Error ? error.constructor.name : "UnknownError",
         },
       },
       { status: statusCode }
