@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     // Process PDFs if provided
     let pdfProcessingTime = 0;
     let pdfProcessingStatus = "none";
-
+    
     if (pdfUrls && pdfUrls.length > 0) {
       const pdfStartTime = Date.now();
       console.log(`[${chatId}] Processing ${pdfUrls.length} PDF(s)...`);
@@ -78,32 +78,30 @@ export async function POST(request: Request) {
 
         if (pdfContent && pdfContent.trim()) {
           context += "=== Document Content ===\n";
-
+          
           // Clean and format PDF content
           const cleanedContent = pdfContent
-            .replace(/\s{3,}/g, " ") // Replace 3+ spaces with single space
-            .replace(/\n{3,}/g, "\n\n") // Replace 3+ newlines with double newline
+            .replace(/\s{3,}/g, ' ') // Replace 3+ spaces with single space
+            .replace(/\n{3,}/g, '\n\n') // Replace 3+ newlines with double newline
             .trim();
 
           context += cleanedContent + "\n\n";
-
+          
           console.log(
             `[${chatId}] PDF processing completed successfully in ${pdfProcessingTime}ms - ${cleanedContent.length} chars extracted`
           );
           pdfProcessingStatus = "success";
         } else {
           context += "=== Document Content ===\n";
-          context +=
-            "⚠️ No readable text could be extracted from the provided PDF documents. The documents might be image-based (scanned), password-protected, corrupted, or in an unsupported format.\n\n";
+          context += "⚠️ No readable text could be extracted from the provided PDF documents. The documents might be image-based (scanned), password-protected, corrupted, or in an unsupported format.\n\n";
           console.warn(`[${chatId}] No text extracted from PDFs`);
           pdfProcessingStatus = "no_text";
         }
       } catch (error) {
         pdfProcessingTime = Date.now() - pdfStartTime;
         console.error(`[${chatId}] PDF processing failed:`, error);
-
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
+        
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         context += "=== Document Content ===\n";
         context += `❌ Error occurred while processing PDF documents: ${errorMessage}.\n`;
         context += "This might be due to:\n";
@@ -111,7 +109,7 @@ export async function POST(request: Request) {
         context += "• Network issues downloading the PDF\n";
         context += "• Unsupported PDF format\n";
         context += "• Large file size causing timeout\n\n";
-
+        
         pdfProcessingStatus = "error";
       }
     }
@@ -125,85 +123,59 @@ export async function POST(request: Request) {
     // Add instructions based on context
     context += "=== Instructions ===\n";
     context += "You are a helpful AI assistant. ";
-
+    
     if (pdfUrls && pdfUrls.length > 0) {
       switch (pdfProcessingStatus) {
         case "success":
-          context +=
-            "The user has provided document(s) above. Please analyze the document content carefully and provide accurate, specific answers based on the information contained within. ";
+          context += "The user has provided document(s) above. Please analyze the document content carefully and provide accurate, specific answers based on the information contained within. ";
           context += "When answering questions about the documents:\n";
-          context += "• Cite specific sections or pages when possible\n";
-          context +=
-            "• If information spans multiple documents, clearly indicate which document contains what information\n";
-          context +=
-            "• If the user's question cannot be answered from the document content, clearly state this\n";
-          context +=
-            "• Provide comprehensive answers that synthesize information from across the documents\n";
+          context += "• Quote specific sections from the PDFs when relevant\n";
+          context += "• If information spans multiple documents, clearly indicate which PDF contains what information\n";
+          context += "• If the user's question cannot be answered from the document content, clearly state this\n";
+          context += "• Provide comprehensive answers that synthesize information from across all documents\n";
+          context += "• Reference specific pages when available\n";
           break;
         case "no_text":
-          context +=
-            "The document(s) provided could not be processed for text extraction. Please inform the user about this issue and suggest they:\n";
-          context +=
-            "• Check if the PDFs are text-based (not scanned images)\n";
+          context += "The document(s) provided could not be processed for text extraction. Please inform the user about this issue and suggest they:\n";
+          context += "• Check if the PDFs are text-based (not scanned images)\n";
           context += "• Ensure the PDFs are not password-protected\n";
-          context +=
-            "• Try uploading different PDFs or converting image-based PDFs to text\n";
+          context += "• Try uploading different PDFs or converting image-based PDFs to text\n";
           break;
         case "error":
-          context +=
-            "There were errors processing the uploaded documents. Please acknowledge this issue and provide general assistance while suggesting the user try re-uploading the documents.\n";
+          context += "There were errors processing the uploaded documents. Please acknowledge this issue and provide general assistance while suggesting the user try re-uploading the documents.\n";
           break;
       }
     }
-
-    context +=
-      "Provide comprehensive, well-structured responses. Use formatting like bullet points, numbered lists, or sections when appropriate to improve readability. ";
+    
+    context += "Provide comprehensive, well-structured responses. Use formatting like bullet points, numbered lists, or sections when appropriate to improve readability. ";
     context += "Be conversational but professional in your tone.\n\n";
 
-    // Handle context length
     const maxContextLength = 30000;
     if (context.length > maxContextLength) {
-      console.warn(
-        `[${chatId}] Context too long (${context.length}), truncating...`
-      );
+      console.warn(`[${chatId}] Context too long (${context.length}), truncating...`);
 
       const parts = context.split("=== Document Content ===");
       if (parts.length > 1) {
         const beforeDoc = parts[0];
         const afterDocParts = parts[1].split("=== Current Question ===");
         const docContent = afterDocParts[0];
-        const afterCurrentQuestion =
-          afterDocParts.length > 1
-            ? "=== Current Question ===" + afterDocParts[1]
-            : "";
+        const afterCurrentQuestion = afterDocParts.length > 1 ? "=== Current Question ===" + afterDocParts[1] : "";
 
-        const reservedSpace =
-          beforeDoc.length + afterCurrentQuestion.length + 1000; // Reserve space
+        const reservedSpace = beforeDoc.length + afterCurrentQuestion.length + 1000; // Reserve space
         const availableForDoc = maxContextLength - reservedSpace;
-
+        
         if (availableForDoc > 3000) {
           // Truncate document content but keep beginning and end
           const halfSpace = Math.floor(availableForDoc / 2) - 100;
-          const truncatedDoc =
-            docContent.substring(0, halfSpace) +
-            "\n\n[... DOCUMENT CONTENT TRUNCATED FOR LENGTH ...]\n\n" +
-            docContent.substring(docContent.length - halfSpace) +
-            "\n";
-          context =
-            beforeDoc +
-            "=== Document Content ===\n" +
-            truncatedDoc +
-            afterCurrentQuestion;
+          const truncatedDoc = docContent.substring(0, halfSpace) + 
+                              "\n\n[... DOCUMENT CONTENT TRUNCATED FOR LENGTH ...]\n\n" + 
+                              docContent.substring(docContent.length - halfSpace) + "\n";
+          context = beforeDoc + "=== Document Content ===\n" + truncatedDoc + afterCurrentQuestion;
         } else {
-          context =
-            beforeDoc +
-            "=== Document Content ===\n[Large document provided - content truncated. Please ask specific questions about the content]\n\n" +
-            afterCurrentQuestion;
+          context = beforeDoc + "=== Document Content ===\n[Large document provided - content truncated. Please ask specific questions about the content]\n\n" + afterCurrentQuestion;
         }
       } else {
-        context =
-          context.substring(0, maxContextLength) +
-          "\n[Context truncated for length]";
+        context = context.substring(0, maxContextLength) + "\n[Context truncated for length]";
       }
     }
 
@@ -289,13 +261,10 @@ export async function POST(request: Request) {
     }
 
     const candidate = responseData.candidates[0];
-
+    
     if (candidate.finishReason === "SAFETY") {
       return NextResponse.json(
-        {
-          error:
-            "Response was filtered for safety reasons. Please try rephrasing your question.",
-        },
+        { error: "Response was filtered for safety reasons. Please try rephrasing your question." },
         { status: 400 }
       );
     }
@@ -310,11 +279,7 @@ export async function POST(request: Request) {
 
     const botResponse = candidate.content.parts[0].text;
 
-    if (
-      !botResponse ||
-      typeof botResponse !== "string" ||
-      !botResponse.trim()
-    ) {
+    if (!botResponse || typeof botResponse !== "string" || !botResponse.trim()) {
       console.error(`[${chatId}] Invalid bot response:`, botResponse);
       return NextResponse.json(
         { error: "Invalid response content from AI service" },
@@ -340,7 +305,7 @@ export async function POST(request: Request) {
         pdfCount: pdfUrls?.length || 0,
         responseLength: botResponse.trim().length,
         pdfProcessingStatus,
-        source: "gemini",
+        source: "gemini"
       },
     });
   } catch (error) {
@@ -360,26 +325,19 @@ export async function POST(request: Request) {
       const message = error.message.toLowerCase();
 
       if (message.includes("fetch") || message.includes("network")) {
-        errorMessage =
-          "Network error. Please check your connection and try again.";
+        errorMessage = "Network error. Please check your connection and try again.";
         statusCode = 503;
       } else if (message.includes("timeout")) {
-        errorMessage =
-          "Request timed out. Please try again with smaller files.";
+        errorMessage = "Request timed out. Please try again with smaller files.";
         statusCode = 408;
-      } else if (
-        message.includes("api_key") ||
-        message.includes("unauthorized")
-      ) {
+      } else if (message.includes("api_key") || message.includes("unauthorized")) {
         errorMessage = "Service configuration error";
         statusCode = 500;
       } else if (message.includes("too large") || message.includes("token")) {
-        errorMessage =
-          "Request too large. Please try with shorter content or fewer PDFs.";
+        errorMessage = "Request too large. Please try with shorter content or fewer PDFs.";
         statusCode = 413;
       } else if (message.includes("pdf")) {
-        errorMessage =
-          "PDF processing error. Please try with different PDFs or check if they're valid.";
+        errorMessage = "PDF processing error. Please try with different PDFs or check if they're valid.";
         statusCode = 422;
       } else {
         errorMessage = error.message;
@@ -391,8 +349,7 @@ export async function POST(request: Request) {
         error: errorMessage,
         metadata: {
           processingTime: totalTime,
-          errorType:
-            error instanceof Error ? error.constructor.name : "UnknownError",
+          errorType: error instanceof Error ? error.constructor.name : "UnknownError",
         },
       },
       { status: statusCode }

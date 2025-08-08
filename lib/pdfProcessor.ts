@@ -1,16 +1,12 @@
 import { extractText } from "unpdf";
 
 export class PDFProcessor {
-  /**
-   * Extract text from PDF URL using unpdf
-   */
   static async extractTextFromURL(pdfUrl: string): Promise<string> {
     try {
       console.log(`Extracting text from PDF: ${pdfUrl}`);
 
-      // Fetch the PDF with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
 
       const response = await fetch(pdfUrl, {
         signal: controller.signal,
@@ -30,7 +26,6 @@ export class PDFProcessor {
 
       const contentLength = response.headers.get("content-length");
       if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) {
-        // 50MB limit
         throw new Error("PDF file is too large (max 50MB supported)");
       }
 
@@ -48,7 +43,7 @@ export class PDFProcessor {
       console.log(`Successfully extracted ${text.length} characters from PDF`);
 
       return text;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error extracting PDF text:", error);
 
       if (error.name === "AbortError") {
@@ -81,8 +76,6 @@ export class PDFProcessor {
       const extractedData = await extractText(uint8Array, {
         // Merge text chunks that are close together
         mergePages: false,
-        // Include coordinate information for better text ordering
-        includeCoords: true,
       });
 
       if (!extractedData || typeof extractedData !== "object") {
@@ -106,21 +99,29 @@ export class PDFProcessor {
         fullText = extractedData;
       } else if (extractedData.text) {
         // If it's an object with text property
-        fullText = extractedData.text;
-      } else if (extractedData.pages && Array.isArray(extractedData.pages)) {
+        fullText = Array.isArray(extractedData.text)
+          ? extractedData.text.join("\n")
+          : extractedData.text;
+      } else if (
+        typeof extractedData === "object" &&
+        "pages" in extractedData &&
+        Array.isArray((extractedData as any).pages)
+      ) {
         // If it has pages array
-        extractedData.pages.forEach((page, index) => {
-          const pageText = typeof page === "string" ? page : page?.text || "";
-          if (pageText.trim()) {
-            fullText += `\n--- Page ${index + 1} ---\n${pageText}\n`;
+        (extractedData as any).pages.forEach(
+          (page: { text: any }, index: number) => {
+            const pageText = typeof page === "string" ? page : page?.text || "";
+            if (pageText.trim()) {
+              fullText += `\n--- Page ${index + 1} ---\n${pageText}\n`;
+            }
           }
-        });
+        );
       } else {
         // Try to extract any text-like properties
         const possibleTextProps = ["content", "text", "data"];
         for (const prop of possibleTextProps) {
-          if (extractedData[prop]) {
-            fullText = extractedData[prop];
+          if ((extractedData as any)[prop]) {
+            fullText = (extractedData as any)[prop];
             break;
           }
         }
@@ -137,7 +138,7 @@ export class PDFProcessor {
       );
 
       return cleanedText;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in extractTextFromArrayBuffer:", error);
 
       if (error.message?.includes("Invalid PDF")) {
@@ -305,7 +306,6 @@ export async function processMultiplePDFs(pdfUrls: string[]): Promise<string> {
 
   const combinedText = results.join("\n");
 
-  // Comprehensive logging
   console.log(`🏁 PDF processing completed:`, {
     total: pdfUrls.length,
     successful: processedInfo.success,
