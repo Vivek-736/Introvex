@@ -10,12 +10,14 @@ import { toast } from "sonner";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/configs/firebaseConfigs";
 import { Upload, Search, Sparkles, Send } from "lucide-react";
+import ActionTooltip from "@/components/action-tooltip";
 
 const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [searchMode, setSearchMode] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const router = useRouter();
   const { user } = useUser();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -25,6 +27,33 @@ const Chat = () => {
       const selectedFiles = Array.from(e.target.files);
       setFiles(selectedFiles);
       toast.success(`${selectedFiles.length} file(s) selected`);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    const pdfFiles = droppedFiles.filter(file => file.type === "application/pdf");
+    
+    if (pdfFiles.length !== droppedFiles.length) {
+      toast.error("Only PDF files are allowed");
+    }
+    
+    if (pdfFiles.length > 0) {
+      setFiles(prev => [...prev, ...pdfFiles]);
+      toast.success(`${pdfFiles.length} PDF file(s) added`);
     }
   };
 
@@ -136,32 +165,21 @@ const Chat = () => {
     }
   };
 
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+    toast.success("File removed");
+  };
+
   return (
     <StyledWrapper>
       <div className="container_chat_bot">
-        <div className="mode-selector">
-          <button
-            className={`mode-btn ${!searchMode ? "active" : ""}`}
-            onClick={() => setSearchMode(false)}
-            disabled={loading}
-          >
-            <Sparkles size={20} />
-            AI Chat
-          </button>
-          <button
-            className={`mode-btn ${searchMode ? "active" : ""}`}
-            onClick={() => setSearchMode(true)}
-            disabled={loading}
-          >
-            <Search size={20} />
-            Web Search
-          </button>
-        </div>
-
         <div
           className={`container-chat-options ${
             searchMode ? "search-mode" : ""
-          }`}
+          } ${isDragOver ? "drag-over" : ""}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
           <div className="chat">
             <div className="chat-bot">
@@ -190,49 +208,89 @@ const Chat = () => {
                   {files.map((file, index) => (
                     <div key={index} className="file-tag">
                       📄 {file.name}
+                      <button
+                        className="remove-file"
+                        onClick={() => removeFile(index)}
+                        title="Remove file"
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
+              {isDragOver && (
+                <div className="drag-overlay">
+                  <div className="drag-content">
+                    <Upload size={48} />
+                    <p>Drop PDF files here</p>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="options">
-              <div className="btns-add">
-                {!searchMode && (
-                  <>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      multiple
-                      style={{ display: "none" }}
-                      onChange={handleFileChange}
-                      ref={fileInputRef}
-                      disabled={loading}
-                    />
-                    <button
-                      className="btn-upload"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={loading}
-                      title="Upload PDFs"
-                    >
-                      <Upload size={24} />
-                    </button>
-                  </>
-                )}
+              <div className="mode-selector">
+                <ActionTooltip label="AI Chat">
+                  <button
+                    className={`mode-btn ${!searchMode ? "active" : ""}`}
+                    onClick={() => setSearchMode(false)}
+                    disabled={loading}
+                  >
+                    <Sparkles size={20} />
+                  </button>
+                </ActionTooltip>
+                <ActionTooltip label="Web Search">
+                  <button
+                    className={`mode-btn ${searchMode ? "active" : ""}`}
+                    onClick={() => setSearchMode(true)}
+                    disabled={loading}
+                  >
+                    <Search size={20} />
+                  </button>
+                </ActionTooltip>
               </div>
-              <button
-                className="btn-submit"
-                onClick={handleSend}
-                disabled={loading}
-                title={searchMode ? "Search web" : "Send message"}
-              >
-                {loading ? (
-                  <span className="loading-text">Processing...</span>
-                ) : (
-                  <i>
-                    {searchMode ? <Search size={24} /> : <Send size={24} />}
-                  </i>
-                )}
-              </button>
+              
+              <div className="right-controls">
+                <div className="btns-add">
+                  {!searchMode && (
+                    <>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        multiple
+                        style={{ display: "none" }}
+                        onChange={handleFileChange}
+                        ref={fileInputRef}
+                        disabled={loading}
+                      />
+                      <ActionTooltip label="Upload PDFs">
+                        <button
+                          className="btn-upload"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={loading}
+                        >
+                          <Upload size={24} />
+                        </button>
+                      </ActionTooltip>
+                    </>
+                  )}
+                </div>
+                <ActionTooltip label={searchMode ? "Search web" : "Send message"}>
+                  <button
+                    className="btn-submit"
+                    onClick={handleSend}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span className="loading-text">Processing...</span>
+                    ) : (
+                      <i>
+                        {searchMode ? <Search size={24} /> : <Send size={24} />}
+                      </i>
+                    )}
+                  </button>
+                </ActionTooltip>
+              </div>
             </div>
           </div>
         </div>
@@ -282,46 +340,6 @@ const StyledWrapper = styled.div`
     padding: 20px 0;
   }
 
-  .mode-selector {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-    justify-content: center;
-  }
-
-  .mode-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px solid #363636;
-    border-radius: 16px;
-    color: #ffffff;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
-    font-weight: 500;
-
-    &:hover {
-      border-color: #7c3aed;
-      background: rgba(124, 58, 237, 0.1);
-      transform: translateY(-2px);
-    }
-
-    &.active {
-      background: linear-gradient(135deg, #7c3aed, #a855f7);
-      border-color: #7c3aed;
-      box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
-    }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-  }
-
   .container-chat-options {
     position: relative;
     display: flex;
@@ -349,6 +367,18 @@ const StyledWrapper = styled.div`
       );
       box-shadow: 0 0 30px rgba(124, 58, 237, 0.2);
     }
+
+    &.drag-over {
+      background: linear-gradient(
+        to bottom right,
+        #10b981,
+        #363636,
+        #363636,
+        #363636,
+        #10b981
+      );
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+    }
   }
 
   .chat {
@@ -358,6 +388,7 @@ const StyledWrapper = styled.div`
     border-radius: 18px;
     width: 100%;
     overflow: hidden;
+    position: relative;
   }
 
   .chat-bot {
@@ -421,6 +452,48 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 4px;
+    position: relative;
+
+    .remove-file {
+      background: none;
+      border: none;
+      color: #a855f7;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      margin-left: 4px;
+      padding: 0;
+      
+      &:hover {
+        color: #ef4444;
+      }
+    }
+  }
+
+  .drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(16, 185, 129, 0.1);
+    border: 2px dashed #10b981;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+
+    .drag-content {
+      text-align: center;
+      color: #10b981;
+      
+      p {
+        margin: 8px 0 0 0;
+        font-size: 16px;
+        font-weight: 500;
+      }
+    }
   }
 
   .options {
@@ -430,6 +503,49 @@ const StyledWrapper = styled.div`
     padding: 12px 14px;
     background-color: rgba(0, 0, 0, 0.5);
     border-radius: 0 0 18px 18px;
+  }
+
+  .mode-selector {
+    display: flex;
+    gap: 8px;
+  }
+
+  .mode-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid #363636;
+    border-radius: 12px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: #7c3aed;
+      background: rgba(124, 58, 237, 0.1);
+      transform: translateY(-2px);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      border-color: #7c3aed;
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
+  .right-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
   .btns-add {
