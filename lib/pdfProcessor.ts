@@ -1,200 +1,231 @@
+import { extractText } from "unpdf";
+
 export class PDFProcessor {
   /**
-   * Extract text from PDF URL using built-in browser APIs
+   * Extract text from PDF URL using unpdf
    */
   static async extractTextFromURL(pdfUrl: string): Promise<string> {
     try {
       console.log(`Extracting text from PDF: ${pdfUrl}`);
 
-      const response = await fetch(pdfUrl);
+      // Fetch the PDF with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+
+      const response = await fetch(pdfUrl, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; PDFProcessor/1.0)",
+          Accept: "application/pdf,*/*",
+        },
+      });
+
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch PDF: ${response.status}`);
+        throw new Error(
+          `Failed to fetch PDF (${response.status}): ${response.statusText}`
+        );
+      }
+
+      const contentLength = response.headers.get("content-length");
+      if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) {
+        // 50MB limit
+        throw new Error("PDF file is too large (max 50MB supported)");
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      const text = await this.extractTextFromArrayBuffer(arrayBuffer);
 
-      console.log(`Extracted ${text.length} characters from PDF`);
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error("PDF file is empty or corrupted");
+      }
+
+      console.log(
+        `PDF downloaded: ${Math.round(arrayBuffer.byteLength / 1024)}KB`
+      );
+
+      const text = await this.extractTextFromArrayBuffer(arrayBuffer);
+      console.log(`Successfully extracted ${text.length} characters from PDF`);
+
       return text;
     } catch (error) {
       console.error("Error extracting PDF text:", error);
-      return `Error processing PDF: ${
-        error instanceof Error ? error.message : "Unknown error"
+
+      if (error.name === "AbortError") {
+        return `Error: PDF processing timed out (file might be too large or network is slow)`;
+      }
+
+      if (error.message?.includes("fetch")) {
+        return `Error: Could not download PDF (network or URL issue)`;
+      }
+
+      return `Error: ${
+        error instanceof Error ? error.message : "Unknown PDF processing error"
       }`;
     }
   }
 
   /**
-   * Extract text from PDF ArrayBuffer
+   * Extract text from PDF ArrayBuffer using unpdf
    */
   private static async extractTextFromArrayBuffer(
-    buffer: ArrayBuffer
+    arrayBuffer: ArrayBuffer
   ): Promise<string> {
-    const uint8Array = new Uint8Array(buffer);
-
-    // Convert to string for pattern matching
-    const pdfString = new TextDecoder("latin1").decode(uint8Array);
-
-    let extractedText = "";
-
-    // Strategy 1: Extract from text objects (most reliable)
-    extractedText += this.extractFromTextObjects(pdfString);
-
-    // Strategy 2: Extract from content streams
-    if (extractedText.length < 100) {
-      extractedText += this.extractFromStreams(pdfString);
-    }
-
-    // Strategy 3: Fallback - extract parenthesized strings
-    if (extractedText.length < 100) {
-      extractedText += this.extractParenthesizedText(pdfString);
-    }
-
-    // Clean and return
-    return this.cleanText(extractedText);
-  }
-
-  /**
-   * Extract text from PDF text objects (BT...ET blocks)
-   */
-  private static extractFromTextObjects(pdfString: string): string {
-    let text = "";
-
     try {
-      // Find all text objects
-      const textObjectRegex = /BT\s+([\s\S]*?)\s+ET/g;
-      const textObjects = pdfString.match(textObjectRegex) || [];
+      console.log("Parsing PDF with unpdf...");
 
-      for (const textObject of textObjects) {
-        // Extract text using various show operators
-        const patterns = [
-          /\(([^)]*)\)\s*Tj/g, // (text) Tj
-          /\(([^)]*)\)\s*TJ/g, // (text) TJ
-          /\[\s*\(([^)]*)\)\s*\]\s*TJ/g, // [(text)] TJ
-        ];
+      // Convert ArrayBuffer to Uint8Array for unpdf
+      const uint8Array = new Uint8Array(arrayBuffer);
 
-        for (const pattern of patterns) {
-          let match;
-          while ((match = pattern.exec(textObject)) !== null) {
-            const extractedString = this.decodePDFString(match[1]);
-            if (this.isValidText(extractedString)) {
-              text += extractedString + " ";
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error in extractFromTextObjects:", error);
-    }
-
-    return text;
-  }
-
-  /**
-   * Extract text from PDF content streams
-   */
-  private static extractFromStreams(pdfString: string): string {
-    let text = "";
-
-    try {
-      // Find content streams
-      const streamRegex = /stream\s+([\s\S]*?)\s+endstream/g;
-      const streams = pdfString.match(streamRegex) || [];
-
-      for (const stream of streams) {
-        const content = stream
-          .replace(/^stream\s*/, "")
-          .replace(/\s*endstream$/, "");
-
-        // Look for text patterns in stream
-        const textPattern = /\(([^)]+)\)/g;
-        let match;
-
-        while ((match = textPattern.exec(content)) !== null) {
-          const extractedString = this.decodePDFString(match[1]);
-          if (this.isValidText(extractedString)) {
-            text += extractedString + " ";
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error in extractFromStreams:", error);
-    }
-
-    return text;
-  }
-
-  /**
-   * Fallback: Extract any parenthesized text
-   */
-  private static extractParenthesizedText(pdfString: string): string {
-    let text = "";
-
-    try {
-      const stringRegex = /\(([^)]{3,})\)/g;
-      let match;
-
-      while ((match = stringRegex.exec(pdfString)) !== null) {
-        const extractedString = this.decodePDFString(match[1]);
-        if (this.isValidText(extractedString) && extractedString.length > 2) {
-          text += extractedString + " ";
-        }
-      }
-    } catch (error) {
-      console.error("Error in extractParenthesizedText:", error);
-    }
-
-    return text;
-  }
-
-  /**
-   * Decode PDF string (handle escape sequences)
-   */
-  private static decodePDFString(str: string): string {
-    return str
-      .replace(/\\n/g, " ")
-      .replace(/\\r/g, " ")
-      .replace(/\\t/g, " ")
-      .replace(/\\b/g, " ")
-      .replace(/\\f/g, " ")
-      .replace(/\\\(/g, "(")
-      .replace(/\\\)/g, ")")
-      .replace(/\\\\/g, "\\")
-      .replace(/\\([0-7]{1,3})/g, (_, octal) => {
-        try {
-          return String.fromCharCode(parseInt(octal, 8));
-        } catch {
-          return "";
-        }
+      // Extract text using unpdf
+      const extractedData = await extractText(uint8Array, {
+        // Merge text chunks that are close together
+        mergePages: false,
+        // Include coordinate information for better text ordering
+        includeCoords: true,
       });
+
+      if (!extractedData || typeof extractedData !== "object") {
+        throw new Error("No data extracted from PDF");
+      }
+
+      let fullText = "";
+
+      // Handle different response formats from unpdf
+      if (Array.isArray(extractedData)) {
+        // If it's an array of pages
+        extractedData.forEach((page, index) => {
+          if (typeof page === "string") {
+            fullText += `\n--- Page ${index + 1} ---\n${page}\n`;
+          } else if (page && typeof page === "object" && page.text) {
+            fullText += `\n--- Page ${index + 1} ---\n${page.text}\n`;
+          }
+        });
+      } else if (typeof extractedData === "string") {
+        // If it's a single string
+        fullText = extractedData;
+      } else if (extractedData.text) {
+        // If it's an object with text property
+        fullText = extractedData.text;
+      } else if (extractedData.pages && Array.isArray(extractedData.pages)) {
+        // If it has pages array
+        extractedData.pages.forEach((page, index) => {
+          const pageText = typeof page === "string" ? page : page?.text || "";
+          if (pageText.trim()) {
+            fullText += `\n--- Page ${index + 1} ---\n${pageText}\n`;
+          }
+        });
+      } else {
+        // Try to extract any text-like properties
+        const possibleTextProps = ["content", "text", "data"];
+        for (const prop of possibleTextProps) {
+          if (extractedData[prop]) {
+            fullText = extractedData[prop];
+            break;
+          }
+        }
+      }
+
+      if (!fullText || fullText.trim().length === 0) {
+        return "No readable text found in PDF. This might be a scanned document, image-based PDF, or the PDF might be corrupted.";
+      }
+
+      const cleanedText = this.cleanText(fullText);
+
+      console.log(
+        `PDF parsing completed: ${cleanedText.length} characters extracted`
+      );
+
+      return cleanedText;
+    } catch (error) {
+      console.error("Error in extractTextFromArrayBuffer:", error);
+
+      if (error.message?.includes("Invalid PDF")) {
+        throw new Error("Invalid or corrupted PDF file");
+      } else if (
+        error.message?.includes("password") ||
+        error.message?.includes("encrypted")
+      ) {
+        throw new Error("PDF is password-protected or encrypted");
+      } else if (error.message?.includes("unsupported")) {
+        throw new Error("PDF format not supported");
+      }
+
+      throw new Error(
+        `PDF parsing failed: ${
+          error instanceof Error ? error.message : "Unknown parsing error"
+        }`
+      );
+    }
   }
 
   /**
-   * Check if extracted text is valid/readable
-   */
-  private static isValidText(text: string): boolean {
-    if (!text || text.length < 2) return false;
-
-    // Check for reasonable letter-to-total ratio
-    const letters = (text.match(/[a-zA-Z]/g) || []).length;
-    const ratio = letters / text.length;
-
-    // At least 40% letters and some common characters
-    return ratio >= 0.4 && /[a-zA-Z\s]/.test(text);
-  }
-
-  /**
-   * Clean extracted text
+   * Clean and format extracted text
    */
   private static cleanText(text: string): string {
     if (!text) return "";
 
-    return text
-      .replace(/\s+/g, " ") // Normalize whitespace
-      .replace(/[^\w\s.,!?;:()"'\-]/g, "") // Remove special chars
-      .replace(/(.)\1{4,}/g, "$1") // Remove excessive repetition
-      .trim()
-      .substring(0, 50000); // Limit length
+    return (
+      text
+        // Normalize whitespace
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .replace(/\t/g, " ")
+        .replace(/ {2,}/g, " ")
+        // Fix common PDF extraction issues
+        .replace(/([a-z])([A-Z])/g, "$1 $2") // Space between cases
+        .replace(/([.!?])([A-Z])/g, "$1 $2") // Space after sentences
+        .replace(/([,;:])([A-Za-z])/g, "$1 $2") // Space after punctuation
+        .replace(/(\d)([A-Za-z])/g, "$1 $2") // Space between numbers and letters
+        .replace(/([A-Za-z])(\d)/g, "$1 $2") // Space between letters and numbers
+        // Handle bullet points and lists
+        .replace(/•/g, "• ")
+        .replace(/◦/g, "◦ ")
+        .replace(/▪/g, "▪ ")
+        .replace(/▫/g, "▫ ")
+        // Fix paragraph breaks
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/\n\s+\n/g, "\n\n")
+        // Remove control characters
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+        // Remove excessive repetition
+        .replace(/(.)\1{15,}/g, "$1$1$1")
+        // Clean up spacing around newlines
+        .replace(/\n /g, "\n")
+        .replace(/ \n/g, "\n")
+        // Trim and limit
+        .trim()
+        .substring(0, 200000)
+    ); // 200KB limit
+  }
+
+  /**
+   * Validate if text extraction was successful
+   */
+  static isValidExtraction(text: string): boolean {
+    if (!text || text.length < 25) return false;
+
+    // Remove common PDF artifacts for validation
+    const cleanedForValidation = text
+      .replace(/Page \d+ of \d+/gi, "")
+      .replace(/\d{1,2}\/\d{1,2}\/\d{4}/g, "")
+      .replace(/\b\d+\b/g, "")
+      .trim();
+
+    if (cleanedForValidation.length < 20) return false;
+
+    // Check for reasonable text content
+    const words = cleanedForValidation
+      .split(/\s+/)
+      .filter((word) => word.length > 1);
+    const validWords = words.filter((word) =>
+      /^[a-zA-Z][a-zA-Z0-9.,!?;:()"'\-]*$/.test(word)
+    );
+
+    // At least 30% of words should be valid English-like words
+    const ratio = validWords.length / Math.max(words.length, 1);
+
+    return ratio >= 0.3 && words.length >= 5;
   }
 }
 
@@ -203,38 +234,111 @@ export class PDFProcessor {
  */
 export async function processMultiplePDFs(pdfUrls: string[]): Promise<string> {
   if (!pdfUrls || pdfUrls.length === 0) {
+    console.log("No PDF URLs provided");
     return "";
   }
 
-  console.log(`Processing ${pdfUrls.length} PDF(s)...`);
+  console.log(`Starting to process ${pdfUrls.length} PDF(s)...`);
+  const results: string[] = [];
+  const errors: string[] = [];
+  const processedInfo: { success: number; failed: number; totalSize: number } =
+    {
+      success: 0,
+      failed: 0,
+      totalSize: 0,
+    };
 
-  const results = await Promise.all(
-    pdfUrls.map(async (url, index) => {
-      try {
-        const text = await PDFProcessor.extractTextFromURL(url);
+  // Process PDFs sequentially to avoid memory issues and rate limits
+  for (let i = 0; i < pdfUrls.length; i++) {
+    const url = pdfUrls[i];
+    const fileName = url.split("/").pop() || `PDF_${i + 1}`;
 
-        if (!text || text.startsWith("Error")) {
-          return `--- PDF ${
-            index + 1
-          } ---\n⚠️ Could not extract text from this PDF\n`;
-        }
+    try {
+      console.log(`Processing PDF ${i + 1}/${pdfUrls.length}: ${fileName}`);
 
-        if (text.length < 50) {
-          return `--- PDF ${
-            index + 1
-          } ---\n⚠️ Minimal text extracted from this PDF\n${text}\n`;
-        }
+      const startTime = Date.now();
+      const text = await PDFProcessor.extractTextFromURL(url);
+      const processingTime = Date.now() - startTime;
 
-        return `--- PDF ${index + 1} ---\n${text}\n`;
-      } catch (error) {
-        console.error(`Error processing PDF ${index + 1}:`, error);
-        return `--- PDF ${index + 1} ---\n❌ Error processing this PDF\n`;
+      if (text.startsWith("Error:")) {
+        errors.push(`${fileName}: ${text}`);
+        results.push(`\n=== PDF ${i + 1}: ${fileName} ===\n⚠️ ${text}\n`);
+        processedInfo.failed++;
+      } else if (!PDFProcessor.isValidExtraction(text)) {
+        const preview = text.substring(0, 150);
+        errors.push(`${fileName}: Minimal or invalid text extracted`);
+        results.push(
+          `\n=== PDF ${
+            i + 1
+          }: ${fileName} ===\n⚠️ Minimal text extracted (possibly scanned/image PDF)\nPreview: ${preview}${
+            text.length > 150 ? "..." : ""
+          }\n`
+        );
+        processedInfo.failed++;
+      } else {
+        console.log(
+          `✅ PDF ${i + 1} processed successfully in ${processingTime}ms: ${
+            text.length
+          } characters`
+        );
+        results.push(`\n=== PDF ${i + 1}: ${fileName} ===\n${text}\n`);
+        processedInfo.success++;
+        processedInfo.totalSize += text.length;
       }
-    })
-  );
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      console.error(`❌ Error processing PDF ${i + 1} (${fileName}):`, error);
+      errors.push(`${fileName}: ${errorMsg}`);
+      results.push(
+        `\n=== PDF ${
+          i + 1
+        }: ${fileName} ===\n❌ Processing failed: ${errorMsg}\n`
+      );
+      processedInfo.failed++;
+    }
+
+    // Small delay between PDFs to prevent overwhelming the system
+    if (i < pdfUrls.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
 
   const combinedText = results.join("\n");
-  console.log(`Combined PDF text length: ${combinedText.length} characters`);
+
+  // Comprehensive logging
+  console.log(`🏁 PDF processing completed:`, {
+    total: pdfUrls.length,
+    successful: processedInfo.success,
+    failed: processedInfo.failed,
+    totalTextLength: processedInfo.totalSize,
+    combinedLength: combinedText.length,
+  });
+
+  if (errors.length > 0) {
+    console.warn(`⚠️ ${errors.length} PDF(s) had issues:`, errors);
+  }
+
+  // Add comprehensive summary for multiple PDFs
+  if (pdfUrls.length > 1) {
+    const summary = `
+=== PDF PROCESSING SUMMARY ===
+📊 Total PDFs: ${pdfUrls.length}
+✅ Successfully processed: ${processedInfo.success}
+❌ Failed to process: ${processedInfo.failed}
+📝 Total text extracted: ${processedInfo.totalSize.toLocaleString()} characters
+📄 Combined output length: ${combinedText.length.toLocaleString()} characters
+
+${
+  errors.length > 0
+    ? `⚠️ Issues encountered:\n${errors
+        .map((e, i) => `${i + 1}. ${e}`)
+        .join("\n")}\n`
+    : "✨ All PDFs processed successfully!\n"
+}
+===============================
+`;
+    return summary + combinedText;
+  }
 
   return combinedText;
 }
