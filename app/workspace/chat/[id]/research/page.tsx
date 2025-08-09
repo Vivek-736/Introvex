@@ -359,8 +359,8 @@ const ResearchPage = () => {
 
       {/* Source Edit Dialog */}
       {showSourceDialog && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center p-4">
+          <div className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-8 max-w-4xl w-10/12 shadow-2xl relative max-h-[90vh] overflow-hidden flex flex-col">
             <button
               onClick={() => setShowSourceDialog(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10"
