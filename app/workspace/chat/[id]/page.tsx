@@ -10,7 +10,6 @@ import ChatButton from "@/components/workspaceUI/ChatButton";
 import { useUser } from "@clerk/nextjs";
 import {
   Import,
-  File,
   CheckCircle,
   AlertCircle,
   Search,
@@ -19,7 +18,6 @@ import {
   Globe,
   FileText,
   Copy,
-  ExternalLink,
 } from "lucide-react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/configs/firebaseConfigs";
