@@ -177,21 +177,6 @@ export default function DocumentsPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Filter size={16} className="text-purple-300" />
-                <select
-                  value={sortBy}
-                  onChange={(e) =>
-                    setSortBy(e.target.value as "newest" | "oldest" | "title")
-                  }
-                  className="bg-black/60 border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50 transition-colors"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="title">By Title</option>
-                </select>
-              </div>
-
               <div className="flex items-center gap-2 bg-black/40 p-2 rounded-xl border border-purple-500/20">
                 <button
                   onClick={() => setViewMode("grid")}
